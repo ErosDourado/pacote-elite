@@ -1,12 +1,22 @@
 import { useRef, useState } from 'react'
 import { Upload, X } from 'lucide-react'
 
-function toBase64(file) {
+// Comprime imagem para JPEG ≤ 900px / 75% — evita estourar localStorage
+function compressImage(file, maxW = 900, quality = 0.75) {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload  = () => resolve(reader.result)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      let { naturalWidth: w, naturalHeight: h } = img
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW }
+      const canvas = document.createElement('canvas')
+      canvas.width = w; canvas.height = h
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+      resolve(canvas.toDataURL('image/jpeg', quality))
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('load')) }
+    img.src = url
   })
 }
 
@@ -41,8 +51,10 @@ export default function ImageUploader({
   const handleFile = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const b64 = await toBase64(file)
-    onChangeImage(b64)
+    try {
+      const b64 = await compressImage(file)
+      onChangeImage(b64)
+    } catch { /* silently ignore */ }
     e.target.value = ''
   }
 

@@ -1,19 +1,19 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, MessageCircle, Package, ChevronRight, ShoppingBag, Store, Check } from 'lucide-react'
+import { X, MessageCircle, Package, ChevronRight, Store, Check } from 'lucide-react'
 import { brandConfig } from '../brandConfig'
 import { useApp } from '../context/AppContext'
 
 // ── Bottom Sheet de produto ───────────────────────────────────────
 function ProductSheet({ product, onClose }) {
   const { addToCart } = useApp()
-  const [added, setAdded] = useState(null) // 'appointment' | 'store'
+  const [added, setAdded] = useState(false)
   if (!product) return null
 
-  const handleAdd = (option) => {
-    addToCart(product, option)
-    setAdded(option)
-    setTimeout(() => { setAdded(null); onClose() }, 1200)
+  const handleAdd = () => {
+    addToCart(product, 'store')
+    setAdded(true)
+    setTimeout(() => { setAdded(false); onClose() }, 1200)
   }
 
   return (
@@ -75,26 +75,15 @@ function ProductSheet({ product, onClose }) {
             <p className="text-[15px] text-label-2 leading-relaxed mb-5 whitespace-pre-wrap">{product.description}</p>
 
             {product.inStock ? (
-              <div className="flex flex-col gap-2">
-                <button
-                  onClick={() => handleAdd('appointment')}
-                  className="btn-fill w-full"
-                  style={added === 'appointment' ? { background: '#34C759' } : {}}
-                >
-                  {added === 'appointment'
-                    ? <><Check size={15} strokeWidth={2.5} /> Adicionado!</>
-                    : <><ShoppingBag size={15} strokeWidth={2} /> Retirar após atendimento</>}
-                </button>
-                <button
-                  onClick={() => handleAdd('store')}
-                  className="btn-tint w-full"
-                  style={added === 'store' ? { background: 'rgba(52,199,89,0.12)', color: '#34C759' } : {}}
-                >
-                  {added === 'store'
-                    ? <><Check size={15} strokeWidth={2.5} /> Adicionado!</>
-                    : <><Store size={15} strokeWidth={2} /> Retirar na loja</>}
-                </button>
-              </div>
+              <button
+                onClick={handleAdd}
+                className="btn-fill w-full"
+                style={added ? { background: '#34C759' } : {}}
+              >
+                {added
+                  ? <><Check size={15} strokeWidth={2.5} /> Adicionado!</>
+                  : <><Store size={15} strokeWidth={2} /> Retirar na loja</>}
+              </button>
             ) : (
               <div className="flex items-center justify-center gap-2 py-3 text-label-2 text-[14px]">
                 <Package size={16} strokeWidth={1.5} />

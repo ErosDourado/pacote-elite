@@ -26,6 +26,11 @@ const load = (key, fallback) => {
   catch { return fallback }
 }
 
+const safeSave = (key, value) => {
+  try { localStorage.setItem(key, JSON.stringify(value)) }
+  catch { /* QuotaExceededError: silently ignore */ }
+}
+
 export function AppProvider({ children }) {
   // ── Estado principal ──────────────────────────────────────────
   const [services,     setServices]     = useState(() => load('svc',    INITIAL_SERVICES))
@@ -91,21 +96,21 @@ export function AppProvider({ children }) {
   }, [firebaseOn])
 
   // ── Persistência automática ───────────────────────────────────
-  useEffect(() => { localStorage.setItem('svc',    JSON.stringify(services))     }, [services])
-  useEffect(() => { localStorage.setItem('prod',   JSON.stringify(products))     }, [products])
-  useEffect(() => { localStorage.setItem('bnr',    JSON.stringify(banners))      }, [banners])
-  useEffect(() => { localStorage.setItem('hl',     JSON.stringify(highlights))   }, [highlights])
-  useEffect(() => { localStorage.setItem('feed',   JSON.stringify(feedPosts))    }, [feedPosts])
-  useEffect(() => { localStorage.setItem('procs',  JSON.stringify(procedures))   }, [procedures])
-  useEffect(() => { localStorage.setItem('links',  JSON.stringify(links))        }, [links])
-  useEffect(() => { localStorage.setItem('watpl',  JSON.stringify(waTemplates))  }, [waTemplates])
-  useEffect(() => { localStorage.setItem('appts',    JSON.stringify(appointments)) }, [appointments])
-  useEffect(() => { localStorage.setItem('blocks',   JSON.stringify(blocks))       }, [blocks])
-  useEffect(() => { localStorage.setItem('waitlist', JSON.stringify(waitlist))     }, [waitlist])
-  useEffect(() => { localStorage.setItem('gallery',  JSON.stringify(gallery))      }, [gallery])
-  useEffect(() => { localStorage.setItem('prof',     JSON.stringify(profile))      }, [profile])
-  useEffect(() => { localStorage.setItem('cart',     JSON.stringify(cart))         }, [cart])
-  useEffect(() => { localStorage.setItem('workingHours', JSON.stringify(workingHours)) }, [workingHours])
+  useEffect(() => { safeSave('svc',         services)     }, [services])
+  useEffect(() => { safeSave('prod',        products)     }, [products])
+  useEffect(() => { safeSave('bnr',         banners)      }, [banners])
+  useEffect(() => { safeSave('hl',          highlights)   }, [highlights])
+  useEffect(() => { safeSave('feed',        feedPosts)    }, [feedPosts])
+  useEffect(() => { safeSave('procs',       procedures)   }, [procedures])
+  useEffect(() => { safeSave('links',       links)        }, [links])
+  useEffect(() => { safeSave('watpl',       waTemplates)  }, [waTemplates])
+  useEffect(() => { safeSave('appts',       appointments) }, [appointments])
+  useEffect(() => { safeSave('blocks',      blocks)       }, [blocks])
+  useEffect(() => { safeSave('waitlist',    waitlist)     }, [waitlist])
+  useEffect(() => { safeSave('gallery',     gallery)      }, [gallery])
+  useEffect(() => { safeSave('prof',        profile)      }, [profile])
+  useEffect(() => { safeSave('cart',        cart)         }, [cart])
+  useEffect(() => { safeSave('workingHours', workingHours) }, [workingHours])
 
   // Gera lista de horários disponíveis a partir da configuração
   const availableHours = useMemo(() => {
@@ -242,7 +247,7 @@ export function AppProvider({ children }) {
     setCart(prev => {
       const existing = prev.find(i => i.productId === product.id && i.pickupOption === pickupOption)
       if (existing) return prev.map(i => (i.productId === product.id && i.pickupOption === pickupOption) ? { ...i, qty: i.qty + 1 } : i)
-      return [...prev, { id: Date.now(), productId: product.id, name: product.name, price: product.price, imageUrl: product.imageUrl || '', pickupOption, qty: 1 }]
+      return [...prev, { id: Date.now(), productId: product.id, name: product.name, price: product.price, pickupOption, qty: 1 }]
     })
   }
   const removeFromCart  = (id)       => setCart(prev => prev.filter(i => i.id !== id))

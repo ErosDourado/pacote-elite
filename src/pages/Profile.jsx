@@ -17,7 +17,7 @@ const PICKUP_LABEL = {
 }
 
 export default function Profile({ onNavigate }) {
-  const { profile, setProfile, appointments, cart, removeFromCart, updateCartQty, clearCart, isVipClient } = useApp()
+  const { profile, setProfile, appointments, products, cart, removeFromCart, updateCartQty, clearCart, isVipClient } = useApp()
   const isVip = profile.phone ? isVipClient(profile.phone) : false
 
   const [editing, setEditing] = useState(false)
@@ -207,10 +207,12 @@ export default function Profile({ onNavigate }) {
               </div>
 
               <div className="flex flex-col gap-2 mb-3">
-                {cart.map(item => (
+                {cart.map(item => {
+                  const prodImg = products.find(p => p.id === item.productId)?.imageUrl
+                  return (
                   <div key={item.id} className="ios-card p-3 flex items-center gap-3">
-                    {item.imageUrl ? (
-                      <img src={item.imageUrl} alt={item.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
+                    {prodImg ? (
+                      <img src={prodImg} alt={item.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
                         onError={e => e.target.style.display = 'none'} />
                     ) : (
                       <div className="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center"
@@ -245,7 +247,8 @@ export default function Profile({ onNavigate }) {
                       </button>
                     </div>
                   </div>
-                ))}
+                )
+                })}
               </div>
 
               {/* Total + CTA WhatsApp */}
