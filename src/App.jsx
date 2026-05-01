@@ -79,7 +79,7 @@ function AppRouter() {
   const { isAdmin, authLoading, firebaseOn } = useApp()
   const [activePage, setActivePage] = useState(() => {
     const saved = sessionStorage.getItem('activePage')
-    return (saved && PAGES[saved] && !ADMIN_ONLY.has(saved)) ? saved : 'home'
+    return (saved && PAGES[saved]) ? saved : 'home'
   })
   const [pageState, setPageState]   = useState(null)
 
@@ -117,8 +117,8 @@ function AppRouter() {
     }
     setActivePage(page)
     setPageState(state)
-    // Persiste para sobreviver ao F5/reload (apenas rotas públicas)
-    if (!ADMIN_ONLY.has(page) && page !== 'login') {
+    // Persiste para sobreviver ao F5/reload (exceto login)
+    if (page !== 'login') {
       sessionStorage.setItem('activePage', page)
     }
   }
