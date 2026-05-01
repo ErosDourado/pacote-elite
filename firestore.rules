@@ -1,0 +1,115 @@
+// ─────────────────────────────────────────────────────────────────
+//  firestore.rules — Regras de segurança do Firestore
+//
+//  COMO APLICAR:
+//    1) Console do Firebase → Firestore Database → aba Regras
+//    2) Cole o BLOCO ATIVO abaixo e clique em "Publicar"
+//
+//  Existem 3 versões. Use a que combina com o estágio do projeto.
+//  Veja README-FIRESTORE.md na raiz pra mais detalhes.
+// ─────────────────────────────────────────────────────────────────
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ╔═══════════════════════════════════════════════════════════╗
+    // ║  VERSÃO 1 — DESENVOLVIMENTO (ATIVO POR PADRÃO)            ║
+    // ║                                                           ║
+    // ║  Tudo aberto até a data de expiração. Use enquanto está   ║
+    // ║  desenvolvendo e ainda não tem login pronto.              ║
+    // ║                                                           ║
+    // ║  ATENÇÃO: trocar pra V2 antes da data abaixo.             ║
+    // ╚═══════════════════════════════════════════════════════════╝
+
+    match /{document=**} {
+      allow read, write: if request.time < timestamp.date(2026, 6, 30);
+    }
+
+
+    // ╔═══════════════════════════════════════════════════════════╗
+    // ║  VERSÃO 2 — PRODUÇÃO COM ADMIN POR E-MAIL (RECOMENDADA)   ║
+    // ║                                                           ║
+    // ║  Como funciona:                                           ║
+    // ║    • Cliente comum: pode LER tudo + criar agendamento /   ║
+    // ║      entrar em fila de espera. NÃO escreve em mais nada.  ║
+    // ║    • Admin: tem o email cadastrado em `admins/{email}`.   ║
+    // ║      Pode escrever em todas as coleções.                  ║
+    // ║                                                           ║
+    // ║  Pra deixar alguém admin: criar o doc `admins/{email}`    ║
+    // ║  manualmente no console do Firebase. Pronto.              ║
+    // ║                                                           ║
+    // ║  Para ativar: REMOVA o bloco V1 acima e descomente este.  ║
+    // ╚═══════════════════════════════════════════════════════════╝
+
+    /*
+    function isLoggedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isLoggedIn()
+        && request.auth.token.email != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.token.email));
+    }
+
+    // ─── Coleção admins ─────────────────────────────────────
+    // Qualquer usuário LOGADO pode ler (pra checar se é admin).
+    // Apenas admin pode editar/criar/excluir outros admins.
+    match /admins/{email} {
+      allow read:  if isLoggedIn();
+      allow write: if isAdmin();
+    }
+
+    // ─── Coleções públicas (clientes leem, admin escreve) ──────
+    match /servicos/{id}      { allow read: if true; allow write: if isAdmin(); }
+    match /products/{id}      { allow read: if true; allow write: if isAdmin(); }
+    match /banners/{id}       { allow read: if true; allow write: if isAdmin(); }
+    match /feed_posts/{id}    { allow read: if true; allow write: if isAdmin(); }
+    match /links/{id}         { allow read: if true; allow write: if isAdmin(); }
+    match /procedures/{id}    { allow read: if true; allow write: if isAdmin(); }
+
+    // ─── Templates (só admin lê/escreve) ─────────────────────
+    match /content/{id}       { allow read, write: if isAdmin(); }
+
+    // ─── Clientes manuais ─────────────────────────────────────
+    match /clientes/{id}      { allow read, write: if isAdmin(); }
+
+    // ─── Agendamentos ─────────────────────────────────────────
+    // Qualquer um cria (booking público). Só admin lê/edita/exclui.
+    match /appointments/{id} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ─── Fila de espera ───────────────────────────────────────
+    match /fila_espera/{id} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ─── Users (cada usuário só vê o próprio doc) ──────────────
+    match /users/{uid} {
+      allow read:  if isLoggedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if isLoggedIn() && (request.auth.uid == uid || isAdmin());
+    }
+    */
+
+
+    // ╔═══════════════════════════════════════════════════════════╗
+    // ║  VERSÃO 3 — TOTALMENTE FECHADO (read-only via console)    ║
+    // ║                                                           ║
+    // ║  Use só se quer que NINGUÉM escreva pelo app — só você    ║
+    // ║  edita pelo console do Firebase.                          ║
+    // ╚═══════════════════════════════════════════════════════════╝
+
+    /*
+    match /{document=**} {
+      allow read:  if true;
+      allow write: if false;
+    }
+    */
+
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "Studio de Estética Premium",
+  "short_name": "Studio",
+  "description": "Agendamento e produtos do seu studio favorito",
+  "theme_color": "#C9A96E",
+  "background_color": "#F7F3EE",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["beauty", "lifestyle", "shopping"],
+  "lang": "pt-BR"
+}
