@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MoreVertical, User, Sliders, CircleDollarSign, LogIn, LogOut } from 'lucide-react'
+import { MoreVertical, User, Sliders, CircleDollarSign, LogIn, LogOut, ShoppingBag } from 'lucide-react'
 import { themeConfig } from '../themeConfig'
 import { useApp } from '../context/AppContext'
 
 export default function TopBar({ onNavigate }) {
-  const { isAdmin, currentUser, firebaseOn, logoutAdmin, loginAdmin } = useApp()
+  const { isAdmin, currentUser, firebaseOn, logoutAdmin, loginAdmin, cart } = useApp()
+  const cartQty = cart.reduce((s, i) => s + i.qty, 0)
   const [open, setOpen] = useState(false)
 
   const isLoggedIn = !!currentUser
@@ -52,8 +53,8 @@ export default function TopBar({ onNavigate }) {
         paddingTop: 'env(safe-area-inset-top, 0px)',
       }}
     >
-      <div className="grid grid-cols-[36px_1fr_36px] items-center px-4 h-14 gap-2">
-        {/* Spacer esquerdo (mesmo tamanho do botão de menu, pra logo ficar centralizada) */}
+      <div className="grid grid-cols-[80px_1fr_80px] items-center px-4 h-14">
+        {/* Spacer esquerdo — mesma largura da direita pra logo ficar centralizada */}
         <div />
 
         {/* Logo / nome — centralizada */}
@@ -67,8 +68,29 @@ export default function TopBar({ onNavigate }) {
           )}
         </div>
 
-        {/* Menu (direita) */}
-        <div className="relative justify-self-end">
+        {/* Direita: carrinho + três pontos */}
+        <div className="flex items-center justify-end gap-1.5">
+          {/* Botão carrinho */}
+          <motion.button
+            whileTap={{ scale: 0.88 }}
+            onClick={() => onNavigate('profile')}
+            className="relative w-9 h-9 rounded-full flex items-center justify-center"
+            style={{ background: 'rgba(120,120,128,0.1)' }}
+            aria-label="Carrinho"
+          >
+            <ShoppingBag size={16} strokeWidth={1.5} style={{ color: 'var(--color-secondary)' }} />
+            {cartQty > 0 && (
+              <span
+                className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-white"
+                style={{ background: 'var(--color-accent)', fontSize: 9, fontWeight: 800, lineHeight: 1 }}
+              >
+                {cartQty > 9 ? '9+' : cartQty}
+              </span>
+            )}
+          </motion.button>
+
+          {/* Três pontos */}
+          <div className="relative">
           <motion.button
             whileTap={{ scale: 0.88 }}
             onClick={() => setOpen(o => !o)}
@@ -145,7 +167,8 @@ export default function TopBar({ onNavigate }) {
               </>
             )}
           </AnimatePresence>
-        </div>
+          </div>{/* /três pontos */}
+        </div>{/* /direita */}
       </div>
     </header>
   )

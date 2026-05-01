@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  ChevronRight, MapPin, ExternalLink,
+  ChevronRight, MapPin, ExternalLink, X,
   Instagram, Facebook, Music2, MessageCircle, Globe, Mail, Phone, Youtube,
   BookOpen, GraduationCap, Megaphone,
 } from 'lucide-react'
@@ -165,7 +165,7 @@ function HeroBanner({ banners, onCtaClick }) {
 }
 
 // ── Seção "Nossos Procedimentos" — carrossel lateral ─────────
-function ProceduresSection({ procedures, onAgendar, onNavigate }) {
+function ProceduresSection({ procedures, onNavigate }) {
   if (!procedures?.length) return null
 
   return (
@@ -204,10 +204,10 @@ function ProceduresSection({ procedures, onAgendar, onNavigate }) {
               {p.serviceId && (
                 <button
                   onClick={() => onNavigate('scheduling', { selectedServiceId: String(p.serviceId) })}
-                  className="mt-4 self-start text-[11px] font-bold px-4 py-2 rounded-lg"
+                  className="mt-4 self-center text-[11px] font-bold px-4 py-2 rounded-lg"
                   style={{ background: 'color-mix(in srgb, var(--color-accent) 10%, transparent)', color: 'var(--color-accent)', border: '1.5px solid var(--color-accent)' }}
                 >
-                  Agendar este serviço
+                  Agendar este procedimento
                 </button>
               )}
             </div>
@@ -215,28 +215,18 @@ function ProceduresSection({ procedures, onAgendar, onNavigate }) {
         ))}
       </div>
 
-      <div className="mt-4 text-center px-4">
-        <button
-          onClick={onAgendar}
-          className="inline-block bg-white text-accent px-8 py-3.5 rounded-md font-bold text-[12px] uppercase tracking-widest hover:opacity-90 transition-all shadow-lg"
-        >
-          Agende uma avaliação
-        </button>
-      </div>
     </section>
   )
 }
 
-// ── Card do Feed (scroll horizontal, formato retrato) ────────────
-function FeedCard({ post, onNavigate }) {
-  const [revealed, setRevealed] = useState(false)
-
+// ── Card do Feed — só a foto, clique abre modal ──────────────────
+function FeedCard({ post, onClick }) {
   return (
     <motion.div
       className="relative overflow-hidden cursor-pointer flex-shrink-0 snap-center"
       style={{ width: 160, aspectRatio: '3/4', borderRadius: 18 }}
       whileTap={{ scale: 0.97 }}
-      onClick={() => setRevealed(r => !r)}
+      onClick={() => onClick(post)}
     >
       {post.imageUrl ? (
         <img
@@ -248,29 +238,62 @@ function FeedCard({ post, onNavigate }) {
       ) : (
         <div className="w-full h-full" style={{ background: 'color-mix(in srgb, var(--color-accent) 12%, var(--color-surface))' }} />
       )}
-
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 55%)' }}
-      />
-
-      {/* Info + botão Agendar sempre visível na base */}
-      <div className="absolute bottom-0 left-0 right-0 p-2.5 flex flex-col gap-1.5">
-        <p className="text-white text-[11px] font-semibold leading-snug line-clamp-2"
-          style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
-          {post.procedure || post.title}
-        </p>
-        {post.serviceId && (
-          <button
-            onClick={e => { e.stopPropagation(); onNavigate('scheduling', { selectedServiceId: String(post.serviceId) }) }}
-            className="self-start text-[10px] font-bold px-2.5 py-1 rounded-lg"
-            style={{ background: 'var(--color-accent)', color: '#fff' }}
-          >
-            Agendar
-          </button>
-        )}
-      </div>
     </motion.div>
+  )
+}
+
+// ── Modal que abre ao clicar no card do feed ──────────────────────
+function FeedModal({ post, onClose, onNavigate }) {
+  if (!post) return null
+  return (
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 z-[80] flex items-end justify-center"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={onClose}
+      >
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+        <motion.div
+          className="relative w-full max-w-md z-10"
+          style={{ background: 'var(--color-surface)', borderRadius: '28px 28px 0 0' }}
+          initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+          transition={{ type: 'spring', stiffness: 380, damping: 38 }}
+          onClick={e => e.stopPropagation()}
+        >
+          {post.imageUrl && (
+            <div className="relative overflow-hidden" style={{ height: 300, borderRadius: '28px 28px 0 0' }}>
+              <img src={post.imageUrl} alt={post.title}
+                className="w-full h-full object-cover"
+                style={{ objectPosition: post.objectPosition || '50% 50%' }} />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+              <button onClick={onClose}
+                className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center bg-black/30 backdrop-blur-sm">
+                <X size={16} strokeWidth={2} className="text-white" />
+              </button>
+            </div>
+          )}
+          <div className="p-5 pb-8">
+            {post.procedure && (
+              <p className="text-[11px] font-bold uppercase tracking-widest text-label-2 mb-1">{post.procedure}</p>
+            )}
+            {post.title && (
+              <h2 className="font-heading text-[20px] font-bold text-label tracking-tight leading-tight">{post.title}</h2>
+            )}
+            {post.description && (
+              <p className="text-[14px] text-label-2 mt-2 leading-relaxed">{post.description}</p>
+            )}
+            {post.serviceId && (
+              <button
+                onClick={() => { onNavigate('scheduling', { selectedServiceId: String(post.serviceId) }); onClose() }}
+                className="btn-fill w-full mt-4"
+              >
+                Agendar
+              </button>
+            )}
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   )
 }
 
@@ -428,6 +451,7 @@ function EnvironmentSection({ gallery }) {
 export default function Home({ onNavigate }) {
   const { banners, feedPosts, procedures, links, gallery, profile, isVipClient } = useApp()
   const isVip = profile.phone ? isVipClient(profile.phone) : false
+  const [feedModal, setFeedModal] = useState(null)
 
   // Filtra banners VIP para clientes não-VIP
   const visibleBanners = banners.filter(b => !b.vipOnly || isVip)
@@ -450,7 +474,7 @@ export default function Home({ onNavigate }) {
       {/* Banner com swipe + CTA dinâmico (filtra VIP) */}
       <HeroBanner banners={visibleBanners} onCtaClick={handleBannerCta} />
 
-      {/* Feed — scroll horizontal com cards retrato (vem antes dos procedimentos) */}
+      {/* Feed — scroll horizontal com cards retrato (clique abre modal) */}
       {feedPosts.length > 0 && (
         <section className="mt-7">
           <div className="section-header px-4 mb-3">
@@ -458,14 +482,17 @@ export default function Home({ onNavigate }) {
           </div>
           <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory px-4 pb-1">
             {feedPosts.map(post => (
-              <FeedCard key={post.id} post={post} onNavigate={onNavigate} />
+              <FeedCard key={post.id} post={post} onClick={setFeedModal} />
             ))}
           </div>
         </section>
       )}
 
+      {/* Modal do feed */}
+      <FeedModal post={feedModal} onClose={() => setFeedModal(null)} onNavigate={onNavigate} />
+
       {/* Nossos Procedimentos — carrossel lateral em fundo accent */}
-      <ProceduresSection procedures={procedures} onAgendar={() => onNavigate('scheduling')} onNavigate={onNavigate} />
+      <ProceduresSection procedures={procedures} onNavigate={onNavigate} />
 
       {/* Nosso Ambiente — galeria + localização colapsável */}
       <EnvironmentSection gallery={gallery} />
