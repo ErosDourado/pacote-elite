@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react'
 import { Upload, X } from 'lucide-react'
+import { idbPut } from '../utils/imageDB'
+import { useApp } from '../context/AppContext'
 
-// Comprime imagem para JPEG ≤ 900px / 75% — evita estourar localStorage
+// Comprime imagem para JPEG ≤ 900px / 75%
 function compressImage(file, maxW = 900, quality = 0.75) {
   return new Promise((resolve, reject) => {
     const img = new Image()
@@ -21,20 +23,14 @@ function compressImage(file, maxW = 900, quality = 0.75) {
 }
 
 /**
- * Componente de upload de imagem com:
- * - Conversão automática para base64 (imagem persiste após refresh)
- * - Focal point por arrasto (object-position)
- * - Botão de exclusão que não reabre o seletor
- * - Opção de colar URL externa (allowUrl)
- *
  * Props:
- *   value           string  URL ou base64 atual
+ *   value           string  Chave IDB ("idb:…"), URL ou base64 atual
  *   position        string  "X% Y%" do focal point
- *   onChangeImage   fn(v)   chamado ao mudar imagem
- *   onChangePosition fn(v)  chamado ao mover focal point (pode ser null)
+ *   onChangeImage   fn(v)
+ *   onChangePosition fn(v)
  *   label           string
- *   height          number  altura do preview em px (default 160)
- *   allowUrl        bool    mostra campo de URL externa (default false)
+ *   height          number  (default 160)
+ *   allowUrl        bool
  */
 export default function ImageUploader({
   value,
@@ -47,15 +43,28 @@ export default function ImageUploader({
 }) {
   const pickerRef = useRef(null)
   const [isDragging, setIsDragging] = useState(false)
+  const { resolveImage, registerImage, unregisterImage } = useApp()
+
+  const resolvedSrc = resolveImage(value)
 
   const handleFile = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
     try {
+      // Remove imagem IDB anterior ao trocar
+      if (value?.startsWith('idb:')) unregisterImage(value)
       const b64 = await compressImage(file)
-      onChangeImage(b64)
+      const key  = 'idb:' + Date.now()
+      await idbPut(key, b64)
+      registerImage(key, b64)
+      onChangeImage(key)
     } catch { /* silently ignore */ }
     e.target.value = ''
+  }
+
+  const handleDelete = () => {
+    if (value?.startsWith('idb:')) unregisterImage(value)
+    onChangeImage('')
   }
 
   const updateFocal = (e) => {
@@ -94,14 +103,13 @@ export default function ImageUploader({
             onPointerCancel={() => setIsDragging(false)}
           >
             <img
-              src={value}
+              src={resolvedSrc}
               alt="preview"
               className="w-full h-full object-cover pointer-events-none"
               style={{ objectPosition: position || '50% 50%' }}
               onError={e => (e.target.style.opacity = '0.3')}
             />
 
-            {/* Overlay escuro leve + hint */}
             {onChangePosition && (
               <>
                 <div className="absolute inset-0 pointer-events-none"
@@ -110,7 +118,6 @@ export default function ImageUploader({
                   style={{ color: 'rgba(255,255,255,0.9)', textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
                   Arraste para enquadrar
                 </p>
-                {/* Crosshair circular */}
                 <div
                   className="absolute rounded-full border-2 border-white pointer-events-none"
                   style={{
@@ -127,7 +134,7 @@ export default function ImageUploader({
             <button
               type="button"
               onPointerDown={e => { e.preventDefault(); e.stopPropagation() }}
-              onClick={e => { e.stopPropagation(); onChangeImage('') }}
+              onClick={e => { e.stopPropagation(); handleDelete() }}
               className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center"
               style={{ background: 'rgba(0,0,0,0.5)' }}
             >

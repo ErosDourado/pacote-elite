@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'
+import { idbPut, idbDel, idbAll } from '../utils/imageDB'
 import { brandConfig } from '../brandConfig'
 import { observeAuth, signOut as authSignOut } from '../services/authService'
 import { subscribeAdminStatus } from '../services/adminsService'
@@ -50,6 +51,67 @@ export function AppProvider({ children }) {
 
   const DEFAULT_WH = { start: '09:00', end: '18:00', lunchStart: '12:00', lunchEnd: '13:00', interval: 60 }
   const [workingHours, setWorkingHoursState] = useState(() => load('workingHours', DEFAULT_WH))
+
+  // ── Mapa de imagens (IndexedDB) ───────────────────────────────
+  const [imageMap, setImageMap] = useState({})
+
+  useEffect(() => {
+    async function init() {
+      // 1. Carrega todas as imagens do IndexedDB
+      const map = await idbAll()
+
+      // 2. Migra base64 antigos do localStorage → IndexedDB
+      const migrate = async (items, ...fields) => {
+        let changed = false
+        const result = await Promise.all(items.map(async item => {
+          const patch = {}
+          for (const f of fields) {
+            if (item[f]?.startsWith('data:')) {
+              const k = 'idb:' + Date.now() + '_' + (Math.random() * 1e6 | 0)
+              await idbPut(k, item[f])
+              map[k] = item[f]
+              patch[f] = k
+              changed = true
+            }
+          }
+          return changed ? { ...item, ...patch } : item
+        }))
+        return changed ? result : null
+      }
+
+      const [mf, mb, mp, mg, mpr] = await Promise.all([
+        migrate(load('feed',    []), 'imageUrl'),
+        migrate(load('bnr',     []), 'url'),
+        migrate(load('procs',   []), 'imagem'),
+        migrate(load('gallery', []), 'url'),
+        migrate(load('prod',    []), 'imageUrl'),
+      ])
+
+      if (mf)  setFeedPosts(mf)
+      if (mb)  setBanners(mb)
+      if (mp)  setProcedures(mp)
+      if (mg)  setGallery(mg)
+      if (mpr) setProducts(mpr)
+
+      setImageMap({ ...map })
+    }
+    init()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const resolveImage = useCallback((src) => {
+    if (!src) return ''
+    if (src.startsWith('idb:')) return imageMap[src] ?? ''
+    return src
+  }, [imageMap])
+
+  const registerImage = useCallback((key, val) => {
+    setImageMap(prev => ({ ...prev, [key]: val }))
+  }, [])
+
+  const unregisterImage = useCallback((key) => {
+    if (key?.startsWith('idb:')) idbDel(key)
+    setImageMap(prev => { const n = { ...prev }; delete n[key]; return n })
+  }, [])
 
   // ── Auth real (Firebase) ──────────────────────────────────────
   // Se Firebase não estiver configurado, usa modo dev (isAdmin=true)
@@ -348,6 +410,8 @@ export function AppProvider({ children }) {
       addToCart, removeFromCart, updateCartQty, clearCart,
       // Horários
       setWorkingHours,
+      // Imagens (IndexedDB)
+      resolveImage, registerImage, unregisterImage,
       // Auth
       loginAdmin, logoutAdmin,
     }}>

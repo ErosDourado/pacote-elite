@@ -87,7 +87,7 @@ function ProductModal({ initial, onSave, onClose }) {
 }
 
 export default function StockAdmin() {
-  const { products, addProduct, removeProduct, updateProduct, toggleStock } = useApp()
+  const { products, addProduct, removeProduct, updateProduct, toggleStock, resolveImage } = useApp()
   const [modal, setModal] = useState(null)
   const [catFilter, setCatFilter] = useState('Todos')
 
@@ -129,7 +129,7 @@ export default function StockAdmin() {
             <div key={prod.id} className="ios-card p-4 flex items-center gap-3">
               {prod.imageUrl ? (
                 <img
-                  src={prod.imageUrl}
+                  src={resolveImage(prod.imageUrl)}
                   alt={prod.name}
                   className="w-14 h-14 rounded-2xl object-cover flex-shrink-0"
                   style={{ objectPosition: prod.objectPosition || 'center' }}

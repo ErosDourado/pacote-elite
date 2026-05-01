@@ -15,7 +15,7 @@ const LINK_ICONS = {
 }
 
 // ── Banner Carrossel com swipe lateral (drag via Framer Motion) ──
-function HeroBanner({ banners, onCtaClick }) {
+function HeroBanner({ banners, onCtaClick, resolveImage }) {
   const [idx, setIdx] = useState(0)
   const containerRef = useRef(null)
   const [width, setWidth] = useState(0)
@@ -104,7 +104,7 @@ function HeroBanner({ banners, onCtaClick }) {
               />
             ) : (
               <img
-                src={banner.url}
+                src={resolveImage(banner.url)}
                 alt={banner.title}
                 draggable={false}
                 className="w-full h-full object-cover pointer-events-none"
@@ -165,7 +165,7 @@ function HeroBanner({ banners, onCtaClick }) {
 }
 
 // ── Seção "Nossos Procedimentos" — carrossel lateral ─────────
-function ProceduresSection({ procedures, onNavigate }) {
+function ProceduresSection({ procedures, onNavigate, resolveImage }) {
   if (!procedures?.length) return null
 
   return (
@@ -191,7 +191,7 @@ function ProceduresSection({ procedures, onNavigate }) {
           >
             <div className="h-44 overflow-hidden">
               <img alt={p.titulo} className="w-full h-full object-cover"
-                style={{ objectPosition: p.objectPosition || '50% 50%' }} src={p.imagem} />
+                style={{ objectPosition: p.objectPosition || '50% 50%' }} src={resolveImage(p.imagem)} />
             </div>
             <div className="p-5 flex flex-col flex-1">
               <h3 className="font-headline text-[15px] font-bold mb-2 uppercase tracking-wide text-accent">
@@ -220,7 +220,7 @@ function ProceduresSection({ procedures, onNavigate }) {
 }
 
 // ── Card do Feed — só a foto, clique abre modal ──────────────────
-function FeedCard({ post, onClick }) {
+function FeedCard({ post, onClick, resolveImage }) {
   return (
     <motion.div
       className="relative overflow-hidden cursor-pointer flex-shrink-0 snap-center"
@@ -230,7 +230,7 @@ function FeedCard({ post, onClick }) {
     >
       {post.imageUrl ? (
         <img
-          src={post.imageUrl}
+          src={resolveImage(post.imageUrl)}
           alt={post.procedure || post.title}
           className="w-full h-full object-cover"
           style={{ objectPosition: post.objectPosition || '50% 50%' }}
@@ -243,7 +243,7 @@ function FeedCard({ post, onClick }) {
 }
 
 // ── Modal que abre ao clicar no card do feed ──────────────────────
-function FeedModal({ post, onClose, onNavigate }) {
+function FeedModal({ post, onClose, onNavigate, resolveImage }) {
   if (!post) return null
   return (
     <AnimatePresence>
@@ -262,7 +262,7 @@ function FeedModal({ post, onClose, onNavigate }) {
         >
           {post.imageUrl && (
             <div className="relative overflow-hidden" style={{ height: 300, borderRadius: '28px 28px 0 0' }}>
-              <img src={post.imageUrl} alt={post.title}
+              <img src={resolveImage(post.imageUrl)} alt={post.title}
                 className="w-full h-full object-cover"
                 style={{ objectPosition: post.objectPosition || '50% 50%' }} />
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
@@ -338,7 +338,7 @@ function LinksSection({ links }) {
 }
 
 // ── "Nosso Ambiente" — galeria do studio + localização colapsável ─
-function EnvironmentSection({ gallery }) {
+function EnvironmentSection({ gallery, resolveImage }) {
   const [mapOpen, setMapOpen] = useState(false)
 
   return (
@@ -357,7 +357,7 @@ function EnvironmentSection({ gallery }) {
               className="flex-shrink-0 snap-center relative overflow-hidden bg-white"
               style={{ width: 220, aspectRatio: '4/5', borderRadius: 18, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
             >
-              <img src={g.url} alt={g.caption || 'Ambiente'} className="w-full h-full object-cover" />
+              <img src={resolveImage(g.url)} alt={g.caption || 'Ambiente'} className="w-full h-full object-cover" />
               {g.caption && (
                 <>
                   <div
@@ -449,7 +449,7 @@ function EnvironmentSection({ gallery }) {
 
 // ── Página Home ───────────────────────────────────────────────────
 export default function Home({ onNavigate }) {
-  const { banners, feedPosts, procedures, links, gallery, profile, isVipClient } = useApp()
+  const { banners, feedPosts, procedures, links, gallery, profile, isVipClient, resolveImage } = useApp()
   const isVip = profile.phone ? isVipClient(profile.phone) : false
   const [feedModal, setFeedModal] = useState(null)
 
@@ -472,7 +472,7 @@ export default function Home({ onNavigate }) {
       <div className="pt-4" />
 
       {/* Banner com swipe + CTA dinâmico (filtra VIP) */}
-      <HeroBanner banners={visibleBanners} onCtaClick={handleBannerCta} />
+      <HeroBanner banners={visibleBanners} onCtaClick={handleBannerCta} resolveImage={resolveImage} />
 
       {/* Feed — scroll horizontal com cards retrato (clique abre modal) */}
       {feedPosts.length > 0 && (
@@ -482,20 +482,20 @@ export default function Home({ onNavigate }) {
           </div>
           <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory px-4 pb-1">
             {feedPosts.map(post => (
-              <FeedCard key={post.id} post={post} onClick={setFeedModal} />
+              <FeedCard key={post.id} post={post} onClick={setFeedModal} resolveImage={resolveImage} />
             ))}
           </div>
         </section>
       )}
 
       {/* Modal do feed */}
-      <FeedModal post={feedModal} onClose={() => setFeedModal(null)} onNavigate={onNavigate} />
+      <FeedModal post={feedModal} onClose={() => setFeedModal(null)} onNavigate={onNavigate} resolveImage={resolveImage} />
 
       {/* Nossos Procedimentos — carrossel lateral em fundo accent */}
-      <ProceduresSection procedures={procedures} onNavigate={onNavigate} />
+      <ProceduresSection procedures={procedures} onNavigate={onNavigate} resolveImage={resolveImage} />
 
       {/* Nosso Ambiente — galeria + localização colapsável */}
-      <EnvironmentSection gallery={gallery} />
+      <EnvironmentSection gallery={gallery} resolveImage={resolveImage} />
 
       {/* Conecte-se (quadradinhos compactos) */}
       <LinksSection links={links} />

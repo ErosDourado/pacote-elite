@@ -6,7 +6,7 @@ import { useApp } from '../context/AppContext'
 
 // ── Bottom Sheet de produto ───────────────────────────────────────
 function ProductSheet({ product, onClose }) {
-  const { addToCart } = useApp()
+  const { addToCart, resolveImage } = useApp()
   const [added, setAdded] = useState(false)
   if (!product) return null
 
@@ -39,7 +39,7 @@ function ProductSheet({ product, onClose }) {
           {/* Foto grande */}
           {product.imageUrl && (
             <div className="relative overflow-hidden" style={{ height: 260, borderRadius: '28px 28px 0 0' }}>
-              <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+              <img src={resolveImage(product.imageUrl)} alt={product.name} className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
               <button
                 onClick={onClose}
@@ -99,6 +99,7 @@ function ProductSheet({ product, onClose }) {
 
 // ── Card de produto (boutique style) ─────────────────────────────
 function ProductCard({ product, onClick }) {
+  const { resolveImage } = useApp()
   return (
     <motion.div
       whileTap={{ scale: 0.96 }}
@@ -109,7 +110,7 @@ function ProductCard({ product, onClick }) {
       {/* Foto full-width */}
       <div className="relative" style={{ aspectRatio: '3/4', overflow: 'hidden' }}>
         {product.imageUrl
-          ? <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover transition-transform duration-300"
+          ? <img src={resolveImage(product.imageUrl)} alt={product.name} className="w-full h-full object-cover transition-transform duration-300"
               style={{ objectPosition: product.objectPosition || 'center' }} />
           : (
             <div className="w-full h-full flex items-center justify-center" style={{ background: 'color-mix(in srgb, var(--color-accent) 10%, var(--color-bg))' }}>
