@@ -199,7 +199,8 @@ function SelectedServiceHeader({ service, onChange }) {
 }
 
 // ── STEP 2 — Data e hora ─────────────────────────────────────────
-function StepDateTime({ selectedDate, selectedTime, onPickDate, onPickTime, takenSlots, blockedDates, onBack, service, onChangeService }) {
+function StepDateTime({ selectedDate, selectedTime, onPickDate, onPickTime, takenSlots, takenByAppt, takenByBlock, blockedDates, onBack, service, onChangeService }) {
+  const { availableHours } = useApp()
   return (
     <div>
       <SelectedServiceHeader service={service} onChange={onChangeService} />
@@ -242,38 +243,33 @@ function StepDateTime({ selectedDate, selectedTime, onPickDate, onPickTime, take
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-2">
-            {brandConfig.availableHours.map(h => {
-              const taken  = takenSlots.includes(h)
-              const active = selectedTime === h
+            {availableHours.map(h => {
+              const isAppt   = takenByAppt.includes(h)  // outro cliente agendou
+              const isBlock  = takenByBlock.includes(h) // admin bloqueou
+              const taken    = isAppt || isBlock
+              const active   = selectedTime === h
               return (
                 <button
                   key={h}
                   disabled={taken}
                   onClick={() => onPickTime(h)}
-                  className="py-2.5 text-[12px] font-bold rounded-xl transition-all"
+                  className="py-2.5 rounded-xl transition-all flex flex-col items-center justify-center"
                   style={{
-                    border: `2px solid ${
-                      active
-                        ? 'var(--color-accent)'
-                        : taken
-                          ? 'rgba(120,120,128,0.15)'
-                          : 'rgba(120,120,128,0.2)'
-                    }`,
-                    background: active
-                      ? 'color-mix(in srgb, var(--color-accent) 12%, white)'
-                      : taken
-                        ? 'rgba(120,120,128,0.05)'
-                        : 'white',
-                    color: active
-                      ? 'var(--color-accent)'
-                      : taken
-                        ? 'rgba(60,60,67,0.3)'
-                        : 'rgba(60,60,67,0.75)',
+                    border: `2px solid ${active ? 'var(--color-accent)' : taken ? 'rgba(120,120,128,0.12)' : 'rgba(120,120,128,0.2)'}`,
+                    background: active ? 'color-mix(in srgb, var(--color-accent) 12%, white)' : taken ? 'rgba(120,120,128,0.04)' : 'white',
                     cursor: taken ? 'not-allowed' : 'pointer',
-                    textDecoration: taken ? 'line-through' : 'none',
                   }}
                 >
-                  {h}
+                  <span className="text-[12px] font-bold" style={{
+                    color: active ? 'var(--color-accent)' : taken ? 'rgba(60,60,67,0.28)' : 'rgba(60,60,67,0.75)',
+                  }}>
+                    {h}
+                  </span>
+                  {isAppt && (
+                    <span className="text-[9px] font-semibold mt-0.5" style={{ color: 'rgba(60,60,67,0.35)' }}>
+                      ocupado
+                    </span>
+                  )}
                 </button>
               )
             })}
@@ -641,7 +637,7 @@ function WaitlistModal({ slot, service, name, phone, email, onClose, onJoin }) {
 export default function Scheduling({ pageState }) {
   const {
     services, appointments, addAppointment, profile,
-    isSlotTaken, addToWaitlist, blocks,
+    isSlotTaken, addToWaitlist, blocks, availableHours,
   } = useApp()
 
   // Estado inicial — recupera de sessionStorage se existir (persistência ao recarregar)
@@ -686,17 +682,27 @@ export default function Scheduling({ pageState }) {
     blocks.filter(b => b.times === 'all').map(b => b.date),
   [blocks])
 
-  // Slots já ocupados na data selecionada (agendamentos + bloqueios do admin)
-  const takenSlots = useMemo(() => {
+  // Slots ocupados por agendamentos reais (para mostrar "Ocupado")
+  const takenByAppt = useMemo(() => {
     if (!date) return []
-    const fromAppts = appointments
+    return appointments
       .filter(a => a.date === date && a.status !== 'cancelled')
       .map(a => a.time)
+  }, [appointments, date])
+
+  // Slots bloqueados pelo admin (para mostrar cinza sem texto)
+  const takenByBlock = useMemo(() => {
+    if (!date) return []
     const block = blocks.find(b => b.date === date)
-    if (block?.times === 'all') return brandConfig.availableHours
-    const fromBlocks = block?.times ?? []
-    return [...new Set([...fromAppts, ...fromBlocks])]
-  }, [appointments, blocks, date])
+    if (!block) return []
+    if (block.times === 'all') return availableHours
+    return block.times
+  }, [blocks, date, availableHours])
+
+  // União para desabilitar botão
+  const takenSlots = useMemo(() =>
+    [...new Set([...takenByAppt, ...takenByBlock])],
+  [takenByAppt, takenByBlock])
 
   const goToStep = (n) => {
     setError('')
@@ -821,6 +827,8 @@ export default function Scheduling({ pageState }) {
                   onPickDate={handlePickDate}
                   onPickTime={setTime}
                   takenSlots={takenSlots}
+                  takenByAppt={takenByAppt}
+                  takenByBlock={takenByBlock}
                   blockedDates={blockedDates}
                   onBack={() => goToStep(1)}
                   service={svc}

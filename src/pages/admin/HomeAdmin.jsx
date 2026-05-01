@@ -1,70 +1,12 @@
 import { useState } from 'react'
 import {
-  Plus, Pencil, Trash2, Save, Upload, Image as ImageIcon, Layers, Sparkles, ChevronDown, Link as LinkIcon,
+  Plus, Pencil, Trash2, Save, Layers, Sparkles, ChevronDown, Link as LinkIcon,
   Instagram, Facebook, Music2, MessageCircle, MapPin, Globe, Mail, Phone, Youtube,
   BookOpen, GraduationCap, Megaphone, Camera,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '../../context/AppContext'
-
-// ── Upload de imagem inline (acionado por clique) ───────────────────
-function ImageUploadField({ value, onChange, label = 'Imagem' }) {
-  return (
-    <div>
-      <label className="block text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: 'rgba(60,60,67,0.5)' }}>
-        {label}
-      </label>
-      <div className="flex items-center gap-3">
-        {value ? (
-          <img
-            src={value}
-            alt="preview"
-            className="w-20 h-16 object-cover rounded-xl flex-shrink-0"
-            style={{ border: '1px solid rgba(0,0,0,0.06)' }}
-            onError={e => e.target.style.display = 'none'}
-          />
-        ) : (
-          <div
-            className="w-20 h-16 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'rgba(120,120,128,0.08)' }}
-          >
-            <ImageIcon size={18} strokeWidth={1.5} style={{ color: 'rgba(60,60,67,0.3)' }} />
-          </div>
-        )}
-        <div className="flex flex-col gap-2 flex-1 min-w-0">
-          <label className="cursor-pointer">
-            <span
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold transition-colors"
-              style={{ border: '1px solid rgba(60,60,67,0.18)', color: 'rgba(60,60,67,0.7)' }}
-            >
-              <Upload size={13} strokeWidth={2} />
-              Upload de imagem
-            </span>
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={e => {
-                const file = e.target.files?.[0]
-                if (file) onChange(URL.createObjectURL(file))
-              }}
-            />
-          </label>
-          <p className="text-[9px] uppercase tracking-wider" style={{ color: 'rgba(60,60,67,0.3)' }}>
-            ou cole a URL abaixo
-          </p>
-          <input
-            value={value || ''}
-            onChange={e => onChange(e.target.value)}
-            placeholder="URL da imagem"
-            className="w-full rounded-xl px-3 py-2 text-[12px] focus:outline-none transition-colors"
-            style={{ border: '1px solid rgba(60,60,67,0.18)' }}
-          />
-        </div>
-      </div>
-    </div>
-  )
-}
+import ImageUploader from '../../components/ImageUploader'
 
 // ── Linha de input genérico ─────────────────────────────────────────
 function InputField({ label, value, onChange, placeholder, multiline = false }) {
@@ -203,12 +145,12 @@ function SectionHeader({ Icon, title, count, onAdd, isExpanded, onToggleExpand }
 
 // ── Seção: Procedimentos (carrossel da Home) ───────────────────────
 function ProceduresSection() {
-  const { procedures, addProcedure, removeProcedure, updateProcedure } = useApp()
+  const { procedures, services, addProcedure, removeProcedure, updateProcedure } = useApp()
   const [openId, setOpenId] = useState(null)
   const [expanded, setExpanded] = useState(false)
 
   const handleAdd = () => {
-    addProcedure({ titulo: '', descricao: '', imagem: '' })
+    addProcedure({ titulo: '', descricao: '', imagem: '', serviceId: '' })
   }
 
   return (
@@ -247,9 +189,12 @@ function ProceduresSection() {
                     onToggle={() => setOpenId(openId === p.id ? null : p.id)}
                     onDelete={() => window.confirm('Remover procedimento?') && removeProcedure(p.id)}
                   >
-                    <ImageUploadField
+                    <ImageUploader
                       value={p.imagem}
-                      onChange={v => updateProcedure(p.id, { imagem: v })}
+                      position={p.objectPosition}
+                      onChangeImage={v => updateProcedure(p.id, { imagem: v })}
+                      onChangePosition={v => updateProcedure(p.id, { objectPosition: v })}
+                      allowUrl
                     />
                     <InputField
                       label="Título"
@@ -264,6 +209,20 @@ function ProceduresSection() {
                       placeholder="Breve descrição do procedimento"
                       multiline
                     />
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: 'rgba(60,60,67,0.5)' }}>
+                        Serviço Vinculado (botão Agendar)
+                      </label>
+                      <select
+                        value={p.serviceId || ''}
+                        onChange={e => updateProcedure(p.id, { serviceId: e.target.value })}
+                        className="w-full rounded-xl px-3 py-2.5 text-[13px] focus:outline-none"
+                        style={{ border: '1px solid rgba(60,60,67,0.18)', background: 'white' }}
+                      >
+                        <option value="">— Nenhum —</option>
+                        {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                    </div>
                     <button
                       onClick={() => setOpenId(null)}
                       className="px-5 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest text-white"
@@ -328,9 +287,12 @@ function FeedSection() {
                     onToggle={() => setOpenId(openId === post.id ? null : post.id)}
                     onDelete={() => window.confirm('Remover postagem?') && removeFeedPost(post.id)}
                   >
-                    <ImageUploadField
+                    <ImageUploader
                       value={post.imageUrl}
-                      onChange={v => updateFeedPost(post.id, { imageUrl: v })}
+                      position={post.objectPosition}
+                      onChangeImage={v => updateFeedPost(post.id, { imageUrl: v })}
+                      onChangePosition={v => updateFeedPost(post.id, { objectPosition: v })}
+                      allowUrl
                     />
                     <InputField
                       label="Título"
@@ -429,9 +391,13 @@ function BannersSection() {
                     onToggle={() => setOpenId(openId === b.id ? null : b.id)}
                     onDelete={() => window.confirm('Remover banner?') && removeBanner(b.id)}
                   >
-                    <ImageUploadField
+                    <ImageUploader
                       value={b.url}
-                      onChange={v => updateBanner(b.id, { url: v })}
+                      position={b.objectPosition}
+                      onChangeImage={v => updateBanner(b.id, { url: v })}
+                      onChangePosition={v => updateBanner(b.id, { objectPosition: v })}
+                      height={180}
+                      allowUrl
                     />
                     <InputField
                       label="Título"
@@ -721,9 +687,12 @@ function GallerySection() {
                     onToggle={() => setOpenId(openId === g.id ? null : g.id)}
                     onDelete={() => window.confirm('Remover esta foto?') && removeGalleryPhoto(g.id)}
                   >
-                    <ImageUploadField
+                    <ImageUploader
                       value={g.url}
-                      onChange={v => updateGalleryPhoto(g.id, { url: v })}
+                      position={g.objectPosition}
+                      onChangeImage={v => updateGalleryPhoto(g.id, { url: v })}
+                      onChangePosition={v => updateGalleryPhoto(g.id, { objectPosition: v })}
+                      allowUrl
                     />
                     <InputField
                       label="Legenda"

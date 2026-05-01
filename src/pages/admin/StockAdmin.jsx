@@ -1,99 +1,11 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, X, Save, ToggleLeft, ToggleRight, Package, Upload } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, Save, ToggleLeft, ToggleRight, Package } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '../../context/AppContext'
+import ImageUploader from '../../components/ImageUploader'
 
 const CATEGORIES = ['Cílios', 'Sobrancelhas', 'Nails', 'Skin', 'Outros']
-const BLANK = { name: '', category: 'Cílios', price: '', stockQty: '', description: '', imageUrl: '', objectPosition: 'center' }
-
-// Converte File para base64 (persiste após reload)
-function toBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload  = () => resolve(reader.result)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
-}
-
-const POSITIONS = [
-  { v: 'top',    label: 'Topo'   },
-  { v: 'center', label: 'Centro' },
-  { v: 'bottom', label: 'Base'   },
-]
-
-function ImagePicker({ value, position, onChangeImage, onChangePosition }) {
-  const handleFile = async (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const b64 = await toBase64(file)
-    onChangeImage(b64)
-    e.target.value = '' // reset para permitir re-selecionar o mesmo arquivo
-  }
-
-  return (
-    <div className="flex flex-col gap-2">
-      <span className="text-[12px] font-medium text-label-2 uppercase tracking-wide">Foto do Produto</span>
-
-      {value ? (
-        <div className="relative rounded-2xl overflow-hidden" style={{ height: 150 }}>
-          <img
-            src={value}
-            alt="preview"
-            className="w-full h-full object-cover"
-            style={{ objectPosition: position || 'center' }}
-            onError={e => e.target.style.display = 'none'}
-          />
-          {/* Botão excluir — não abre o seletor de arquivo */}
-          <button
-            type="button"
-            onPointerDown={e => { e.preventDefault(); e.stopPropagation(); onChangeImage('') }}
-            className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center"
-          >
-            <X size={14} strokeWidth={2.5} className="text-white" />
-          </button>
-          {/* Botão trocar foto */}
-          <label className="absolute bottom-2 right-2 cursor-pointer">
-            <span className="text-[11px] font-bold text-white px-2 py-1 rounded-lg"
-              style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)' }}>
-              Trocar foto
-            </span>
-            <input type="file" accept="image/*" className="hidden" onChange={handleFile} />
-          </label>
-        </div>
-      ) : (
-        <label className="cursor-pointer">
-          <div className="h-28 rounded-2xl flex flex-col items-center justify-center gap-2 border-2 border-dashed"
-            style={{ borderColor: 'rgba(120,120,128,0.2)' }}>
-            <Upload size={22} strokeWidth={1.5} className="text-label-3" />
-            <p className="text-[12px] text-label-2">Toque para selecionar uma foto</p>
-          </div>
-          <input type="file" accept="image/*" className="hidden" onChange={handleFile} />
-        </label>
-      )}
-
-      {/* Seletor de posição (só aparece quando há imagem) */}
-      {value && (
-        <div className="flex gap-2 mt-1">
-          {POSITIONS.map(p => (
-            <button
-              key={p.v}
-              type="button"
-              onClick={() => onChangePosition(p.v)}
-              className="flex-1 py-1.5 rounded-lg text-[11px] font-semibold transition-all"
-              style={{
-                background: position === p.v ? 'var(--color-accent)' : 'rgba(120,120,128,0.1)',
-                color: position === p.v ? '#fff' : 'rgba(60,60,67,0.6)',
-              }}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
+const BLANK = { name: '', category: 'Cílios', price: '', stockQty: '', description: '', imageUrl: '', objectPosition: '50% 50%' }
 
 function ProductModal({ initial, onSave, onClose }) {
   const [form, setForm] = useState(initial)
@@ -118,11 +30,13 @@ function ProductModal({ initial, onSave, onClose }) {
             </button>
           </div>
           <div className="px-5 flex flex-col gap-4 pb-6">
-            <ImagePicker
+            <ImageUploader
+              label="Foto do Produto"
               value={form.imageUrl}
-              position={form.objectPosition || 'center'}
+              position={form.objectPosition || '50% 50%'}
               onChangeImage={v => f('imageUrl', v)}
               onChangePosition={v => f('objectPosition', v)}
+              height={150}
             />
 
             <label className="flex flex-col gap-1.5">

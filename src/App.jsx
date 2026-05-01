@@ -86,10 +86,25 @@ function AppRouter() {
   useEffect(() => {
     applyTheme()
     loadFonts()
-    // Bloqueia botão direito para evitar inspecionar
+    // Bloqueia botão direito
     const noCtx = e => e.preventDefault()
     document.addEventListener('contextmenu', noCtx)
-    return () => document.removeEventListener('contextmenu', noCtx)
+    // Bloqueia pinch-to-zoom e gestos do iOS Safari
+    const noGesture = e => e.preventDefault()
+    document.addEventListener('gesturestart',  noGesture, { passive: false })
+    document.addEventListener('gesturechange', noGesture, { passive: false })
+    document.addEventListener('gestureend',    noGesture, { passive: false })
+    // Bloqueia double-tap zoom
+    let lastTap = 0
+    const noDbTap = e => { const now = Date.now(); if (now - lastTap < 300) e.preventDefault(); lastTap = now }
+    document.addEventListener('touchend', noDbTap, { passive: false })
+    return () => {
+      document.removeEventListener('contextmenu', noCtx)
+      document.removeEventListener('gesturestart',  noGesture)
+      document.removeEventListener('gesturechange', noGesture)
+      document.removeEventListener('gestureend',    noGesture)
+      document.removeEventListener('touchend', noDbTap)
+    }
   }, [])
 
   const navigate = (page, state = null) => {

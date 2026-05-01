@@ -165,15 +165,11 @@ function HeroBanner({ banners, onCtaClick }) {
 }
 
 // ── Seção "Nossos Procedimentos" — carrossel lateral ─────────
-function ProceduresSection({ procedures, onAgendar }) {
-  // Esconde a seção inteira quando não há procedimentos cadastrados
+function ProceduresSection({ procedures, onAgendar, onNavigate }) {
   if (!procedures?.length) return null
 
   return (
-    <section
-      className="mt-7 py-10"
-      style={{ background: 'var(--color-accent)' }}
-    >
+    <section className="mt-7 py-10" style={{ background: 'var(--color-accent)' }}>
       <div className="text-center text-white px-4 mb-6">
         <h2 className="font-headline text-[22px] font-bold uppercase tracking-tight mb-2">
           Nossos procedimentos
@@ -183,7 +179,6 @@ function ProceduresSection({ procedures, onAgendar }) {
         </p>
       </div>
 
-      {/* Carrossel com efeito peeking — card central + slivers nas bordas */}
       <div
         className="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide scroll-smooth pt-3 pb-6"
         style={{ paddingLeft: '7.5vw', paddingRight: '7.5vw' }}
@@ -192,31 +187,35 @@ function ProceduresSection({ procedures, onAgendar }) {
           <div
             key={p.id}
             className="flex-shrink-0 snap-center bg-white rounded-xl overflow-hidden flex flex-col text-left"
-            style={{
-              width: '85vw',
-              maxWidth: 360,
-              boxShadow: '0 12px 32px rgba(0,0,0,0.18)',
-            }}
+            style={{ width: '85vw', maxWidth: 360, boxShadow: '0 12px 32px rgba(0,0,0,0.18)' }}
           >
             <div className="h-44 overflow-hidden">
-              <img alt={p.titulo} className="w-full h-full object-cover" src={p.imagem} />
+              <img alt={p.titulo} className="w-full h-full object-cover"
+                style={{ objectPosition: p.objectPosition || '50% 50%' }} src={p.imagem} />
             </div>
             <div className="p-5 flex flex-col flex-1">
-              <h3 className="font-headline text-[15px] font-bold mb-3 uppercase tracking-wide text-accent">
+              <h3 className="font-headline text-[15px] font-bold mb-2 uppercase tracking-wide text-accent">
                 {p.titulo}
               </h3>
-              <p
-                className="text-[13px] leading-relaxed font-medium flex-1"
-                style={{ color: 'rgba(74,69,70,0.8)' }}
-              >
+              <p className="text-[13px] leading-relaxed font-medium flex-1"
+                style={{ color: 'rgba(74,69,70,0.8)' }}>
                 {p.descricao}
               </p>
+              {p.serviceId && (
+                <button
+                  onClick={() => onNavigate('scheduling', { selectedServiceId: String(p.serviceId) })}
+                  className="mt-4 self-start text-[11px] font-bold px-4 py-2 rounded-lg"
+                  style={{ background: 'color-mix(in srgb, var(--color-accent) 10%, transparent)', color: 'var(--color-accent)', border: '1.5px solid var(--color-accent)' }}
+                >
+                  Agendar este serviço
+                </button>
+              )}
             </div>
           </div>
         ))}
       </div>
 
-      <div className="mt-6 text-center px-4">
+      <div className="mt-4 text-center px-4">
         <button
           onClick={onAgendar}
           className="inline-block bg-white text-accent px-8 py-3.5 rounded-md font-bold text-[12px] uppercase tracking-widest hover:opacity-90 transition-all shadow-lg"
@@ -229,7 +228,7 @@ function ProceduresSection({ procedures, onAgendar }) {
 }
 
 // ── Card do Feed (scroll horizontal, formato retrato) ────────────
-function FeedCard({ post }) {
+function FeedCard({ post, onNavigate }) {
   const [revealed, setRevealed] = useState(false)
 
   return (
@@ -244,33 +243,33 @@ function FeedCard({ post }) {
           src={post.imageUrl}
           alt={post.procedure || post.title}
           className="w-full h-full object-cover"
+          style={{ objectPosition: post.objectPosition || '50% 50%' }}
         />
       ) : (
         <div className="w-full h-full" style={{ background: 'color-mix(in srgb, var(--color-accent) 12%, var(--color-surface))' }} />
       )}
 
-      {/* Gradiente fixo sutil na base */}
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.35) 0%, transparent 50%)' }}
+        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 55%)' }}
       />
 
-      <AnimatePresence>
-        {revealed && (
-          <motion.div
-            className="absolute inset-0 flex items-end p-3"
-            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.22) 55%, transparent 100%)' }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+      {/* Info + botão Agendar sempre visível na base */}
+      <div className="absolute bottom-0 left-0 right-0 p-2.5 flex flex-col gap-1.5">
+        <p className="text-white text-[11px] font-semibold leading-snug line-clamp-2"
+          style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
+          {post.procedure || post.title}
+        </p>
+        {post.serviceId && (
+          <button
+            onClick={e => { e.stopPropagation(); onNavigate('scheduling', { selectedServiceId: String(post.serviceId) }) }}
+            className="self-start text-[10px] font-bold px-2.5 py-1 rounded-lg"
+            style={{ background: 'var(--color-accent)', color: '#fff' }}
           >
-            <p className="text-white text-[12px] font-semibold leading-snug">
-              {post.procedure || post.title}
-            </p>
-          </motion.div>
+            Agendar
+          </button>
         )}
-      </AnimatePresence>
+      </div>
     </motion.div>
   )
 }
@@ -459,14 +458,14 @@ export default function Home({ onNavigate }) {
           </div>
           <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory px-4 pb-1">
             {feedPosts.map(post => (
-              <FeedCard key={post.id} post={post} />
+              <FeedCard key={post.id} post={post} onNavigate={onNavigate} />
             ))}
           </div>
         </section>
       )}
 
       {/* Nossos Procedimentos — carrossel lateral em fundo accent */}
-      <ProceduresSection procedures={procedures} onAgendar={() => onNavigate('scheduling')} />
+      <ProceduresSection procedures={procedures} onAgendar={() => onNavigate('scheduling')} onNavigate={onNavigate} />
 
       {/* Nosso Ambiente — galeria + localização colapsável */}
       <EnvironmentSection gallery={gallery} />

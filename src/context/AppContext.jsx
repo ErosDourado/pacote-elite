@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useMemo } from 'react'
+import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'
 import { brandConfig } from '../brandConfig'
 import { observeAuth, signOut as authSignOut } from '../services/authService'
 import { subscribeAdminStatus } from '../services/adminsService'
@@ -42,6 +42,9 @@ export function AppProvider({ children }) {
   const [gallery,      setGallery]      = useState(() => load('gallery',  INITIAL_GALLERY))
   const [profile,      setProfileState] = useState(() => load('prof',   { name: '', phone: '', email: '' }))
   const [cart,         setCart]         = useState(() => load('cart',    []))
+
+  const DEFAULT_WH = { start: '09:00', end: '18:00', lunchStart: '12:00', lunchEnd: '13:00', interval: 60 }
+  const [workingHours, setWorkingHoursState] = useState(() => load('workingHours', DEFAULT_WH))
 
   // ── Auth real (Firebase) ──────────────────────────────────────
   // Se Firebase não estiver configurado, usa modo dev (isAdmin=true)
@@ -102,6 +105,23 @@ export function AppProvider({ children }) {
   useEffect(() => { localStorage.setItem('gallery',  JSON.stringify(gallery))      }, [gallery])
   useEffect(() => { localStorage.setItem('prof',     JSON.stringify(profile))      }, [profile])
   useEffect(() => { localStorage.setItem('cart',     JSON.stringify(cart))         }, [cart])
+  useEffect(() => { localStorage.setItem('workingHours', JSON.stringify(workingHours)) }, [workingHours])
+
+  // Gera lista de horários disponíveis a partir da configuração
+  const availableHours = useMemo(() => {
+    const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + (m || 0) }
+    const toStr = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
+    const { start, end, lunchStart, lunchEnd, interval } = workingHours
+    const startM = toMin(start), endM = toMin(end), lsM = toMin(lunchStart), leM = toMin(lunchEnd)
+    const result = []
+    for (let m = startM; m < endM; m += Number(interval)) {
+      if (m >= lsM && m < leM) continue
+      result.push(toStr(m))
+    }
+    return result
+  }, [workingHours])
+
+  const setWorkingHours = (data) => setWorkingHoursState(prev => ({ ...prev, ...data }))
 
   // ── Agendamentos ──────────────────────────────────────────────
   const addAppointment = (data) => {
@@ -285,7 +305,7 @@ export function AppProvider({ children }) {
     <AppContext.Provider value={{
       // Estado
       services, products, banners, highlights, feedPosts, procedures, links, waTemplates,
-      appointments, blocks, waitlist, gallery, profile, cart, isAdmin,
+      appointments, blocks, waitlist, gallery, profile, cart, workingHours, availableHours, isAdmin,
       // Auth
       currentUser, authLoading, firebaseOn,
       // Derivados
@@ -321,6 +341,8 @@ export function AppProvider({ children }) {
       setProfile,
       // Carrinho
       addToCart, removeFromCart, updateCartQty, clearCart,
+      // Horários
+      setWorkingHours,
       // Auth
       loginAdmin, logoutAdmin,
     }}>
