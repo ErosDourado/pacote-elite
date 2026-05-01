@@ -41,6 +41,7 @@ export function AppProvider({ children }) {
   const [waitlist,     setWaitlist]     = useState(() => load('waitlist', INITIAL_WAITLIST))
   const [gallery,      setGallery]      = useState(() => load('gallery',  INITIAL_GALLERY))
   const [profile,      setProfileState] = useState(() => load('prof',   { name: '', phone: '', email: '' }))
+  const [cart,         setCart]         = useState(() => load('cart',    []))
 
   // ── Auth real (Firebase) ──────────────────────────────────────
   // Se Firebase não estiver configurado, usa modo dev (isAdmin=true)
@@ -100,6 +101,7 @@ export function AppProvider({ children }) {
   useEffect(() => { localStorage.setItem('waitlist', JSON.stringify(waitlist))     }, [waitlist])
   useEffect(() => { localStorage.setItem('gallery',  JSON.stringify(gallery))      }, [gallery])
   useEffect(() => { localStorage.setItem('prof',     JSON.stringify(profile))      }, [profile])
+  useEffect(() => { localStorage.setItem('cart',     JSON.stringify(cart))         }, [cart])
 
   // ── Agendamentos ──────────────────────────────────────────────
   const addAppointment = (data) => {
@@ -215,6 +217,18 @@ export function AppProvider({ children }) {
   const removeBlock = (id)    => setBlocks(prev => prev.filter(b => b.id !== id))
   const updateBlock = (id, p) => setBlocks(prev => prev.map(b => b.id === id ? { ...b, ...p } : b))
 
+  // ── Carrinho ──────────────────────────────────────────────────
+  const addToCart = (product, pickupOption) => {
+    setCart(prev => {
+      const existing = prev.find(i => i.productId === product.id && i.pickupOption === pickupOption)
+      if (existing) return prev.map(i => (i.productId === product.id && i.pickupOption === pickupOption) ? { ...i, qty: i.qty + 1 } : i)
+      return [...prev, { id: Date.now(), productId: product.id, name: product.name, price: product.price, imageUrl: product.imageUrl || '', pickupOption, qty: 1 }]
+    })
+  }
+  const removeFromCart  = (id)       => setCart(prev => prev.filter(i => i.id !== id))
+  const updateCartQty   = (id, qty)  => qty <= 0 ? removeFromCart(id) : setCart(prev => prev.map(i => i.id === id ? { ...i, qty } : i))
+  const clearCart       = ()         => setCart([])
+
   // ── Perfil da cliente ─────────────────────────────────────────
   const setProfile = (data) => setProfileState(prev => ({ ...prev, ...data }))
 
@@ -271,7 +285,7 @@ export function AppProvider({ children }) {
     <AppContext.Provider value={{
       // Estado
       services, products, banners, highlights, feedPosts, procedures, links, waTemplates,
-      appointments, blocks, waitlist, gallery, profile, isAdmin,
+      appointments, blocks, waitlist, gallery, profile, cart, isAdmin,
       // Auth
       currentUser, authLoading, firebaseOn,
       // Derivados
@@ -305,6 +319,8 @@ export function AppProvider({ children }) {
       addBlock, removeBlock, updateBlock,
       // Perfil
       setProfile,
+      // Carrinho
+      addToCart, removeFromCart, updateCartQty, clearCart,
       // Auth
       loginAdmin, logoutAdmin,
     }}>

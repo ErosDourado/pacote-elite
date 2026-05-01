@@ -77,26 +77,35 @@ function PageLoader() {
 // ── Roteador interno (consome o AppContext pra guard de admin) ──
 function AppRouter() {
   const { isAdmin, authLoading, firebaseOn } = useApp()
-  const [activePage, setActivePage] = useState('home')
+  const [activePage, setActivePage] = useState(() => {
+    const saved = sessionStorage.getItem('activePage')
+    return (saved && PAGES[saved] && !ADMIN_ONLY.has(saved)) ? saved : 'home'
+  })
   const [pageState, setPageState]   = useState(null)
 
   useEffect(() => {
     applyTheme()
     loadFonts()
+    // Bloqueia botão direito para evitar inspecionar
+    const noCtx = e => e.preventDefault()
+    document.addEventListener('contextmenu', noCtx)
+    return () => document.removeEventListener('contextmenu', noCtx)
   }, [])
 
   const navigate = (page, state = null) => {
     // Guard: rotas admin-only
     if (firebaseOn && ADMIN_ONLY.has(page) && !isAdmin) {
-      // Aguarda terminar de checar auth antes de redirecionar
       if (authLoading) return
-      // Não admin → manda pra Login com redirectTo de volta
       setActivePage('login')
       setPageState({ redirectTo: page })
       return
     }
     setActivePage(page)
     setPageState(state)
+    // Persiste para sobreviver ao F5/reload (apenas rotas públicas)
+    if (!ADMIN_ONLY.has(page) && page !== 'login') {
+      sessionStorage.setItem('activePage', page)
+    }
   }
 
   // Se admin perde acesso enquanto está em rota admin (ex: deslogou), volta pra home

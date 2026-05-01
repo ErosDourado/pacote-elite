@@ -82,7 +82,11 @@ export default function TopBar({ onNavigate }) {
           <AnimatePresence>
             {open && (
               <>
-                <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setOpen(false)}
+                  onTouchStart={() => setOpen(false)}
+                />
 
                 <motion.div
                   className="absolute right-0 z-50 w-56 overflow-hidden"

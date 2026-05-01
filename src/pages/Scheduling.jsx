@@ -199,7 +199,7 @@ function SelectedServiceHeader({ service, onChange }) {
 }
 
 // ── STEP 2 — Data e hora ─────────────────────────────────────────
-function StepDateTime({ selectedDate, selectedTime, onPickDate, onPickTime, takenSlots, onBack, service, onChangeService }) {
+function StepDateTime({ selectedDate, selectedTime, onPickDate, onPickTime, takenSlots, blockedDates, onBack, service, onChangeService }) {
   return (
     <div>
       <SelectedServiceHeader service={service} onChange={onChangeService} />
@@ -218,6 +218,7 @@ function StepDateTime({ selectedDate, selectedTime, onPickDate, onPickTime, take
           onDateClick={onPickDate}
           disablePast
           blockedWeekdays={[0]}
+          blockedDates={blockedDates}
         />
       </div>
 
@@ -640,7 +641,7 @@ function WaitlistModal({ slot, service, name, phone, email, onClose, onJoin }) {
 export default function Scheduling({ pageState }) {
   const {
     services, appointments, addAppointment, profile,
-    isSlotTaken, addToWaitlist,
+    isSlotTaken, addToWaitlist, blocks,
   } = useApp()
 
   // Estado inicial — recupera de sessionStorage se existir (persistência ao recarregar)
@@ -680,13 +681,22 @@ export default function Scheduling({ pageState }) {
     saveBooking({ step, svc, date, time, name, phone, email })
   }, [step, svc, date, time, name, phone, email, done])
 
-  // Slots já ocupados na data selecionada
+  // Datas totalmente bloqueadas pelo admin
+  const blockedDates = useMemo(() =>
+    blocks.filter(b => b.times === 'all').map(b => b.date),
+  [blocks])
+
+  // Slots já ocupados na data selecionada (agendamentos + bloqueios do admin)
   const takenSlots = useMemo(() => {
     if (!date) return []
-    return appointments
+    const fromAppts = appointments
       .filter(a => a.date === date && a.status !== 'cancelled')
       .map(a => a.time)
-  }, [appointments, date])
+    const block = blocks.find(b => b.date === date)
+    if (block?.times === 'all') return brandConfig.availableHours
+    const fromBlocks = block?.times ?? []
+    return [...new Set([...fromAppts, ...fromBlocks])]
+  }, [appointments, blocks, date])
 
   const goToStep = (n) => {
     setError('')
@@ -811,6 +821,7 @@ export default function Scheduling({ pageState }) {
                   onPickDate={handlePickDate}
                   onPickTime={setTime}
                   takenSlots={takenSlots}
+                  blockedDates={blockedDates}
                   onBack={() => goToStep(1)}
                   service={svc}
                   onChangeService={() => goToStep(1)}
