@@ -2,7 +2,7 @@ import { useState } from 'react'
 import {
   Plus, Pencil, Trash2, Save, Layers, Sparkles, ChevronDown, Link as LinkIcon,
   Instagram, Facebook, Music2, MessageCircle, MapPin, Globe, Mail, Phone, Youtube,
-  BookOpen, GraduationCap, Megaphone, Camera,
+  BookOpen, GraduationCap, Megaphone, Camera, Image as ImageIcon,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '../../context/AppContext'
@@ -115,7 +115,7 @@ function SectionHeader({ Icon, title, count, onAdd, isExpanded, onToggleExpand }
           className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
           style={{ background: 'color-mix(in srgb, var(--color-accent) 12%, transparent)' }}
         >
-          <Icon size={15} strokeWidth={1.5} className="text-accent" />
+          {Icon && <Icon size={15} strokeWidth={1.5} className="text-accent" />}
         </div>
         <div className="text-left min-w-0">
           <p className="font-heading text-[15px] font-black uppercase tracking-tight" style={{ color: '#1D1D1F' }}>
@@ -548,8 +548,10 @@ function IconGallery({ value, onChange }) {
               }}
               aria-label={label}
             >
-              <Icon size={18} strokeWidth={active ? 2 : 1.5}
-                style={{ color: active ? 'var(--color-accent)' : 'rgba(60,60,67,0.6)' }} />
+              {Icon && (
+                <Icon size={18} strokeWidth={active ? 2 : 1.5}
+                  style={{ color: active ? 'var(--color-accent)' : 'rgba(60,60,67,0.6)' }} />
+              )}
               <span className="text-[9px] font-bold uppercase tracking-wider truncate max-w-full px-1"
                 style={{ color: active ? 'var(--color-accent)' : 'rgba(60,60,67,0.5)' }}>
                 {label}
@@ -720,6 +722,9 @@ function GallerySection() {
 
 // ── Página principal ──────────────────────────────────────────────
 export default function HomeAdmin() {
+  const context = useApp()
+  if (!context) return null
+
   return (
     <div className="px-4 pt-5 flex flex-col gap-7 pb-6 max-w-3xl mx-auto w-full">
       <FeedSection />
