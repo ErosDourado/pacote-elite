@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Home, Calendar, Scissors, Users, CalendarOff, ShoppingBag, MessageSquare } from 'lucide-react'
+import { Home, Calendar, Scissors, Users, CalendarOff, ShoppingBag, MessageSquare, Bell } from 'lucide-react'
 import { brandConfig } from '../../brandConfig'
 import AppointmentsAdmin  from './AppointmentsAdmin'
 import ServicesAdmin      from './ServicesAdmin'
@@ -9,6 +9,7 @@ import ClientsAdmin       from './ClientsAdmin'
 import AvailabilityAdmin  from './AvailabilityAdmin'
 import StockAdmin         from './StockAdmin'
 import MessagesAdmin      from './MessagesAdmin'
+import NotificationsAdmin from './NotificationsAdmin'
 
 const TABS = [
   { id: 'appointments',  label: 'Agenda',     Icon: Calendar,       Component: AppointmentsAdmin },
@@ -18,6 +19,7 @@ const TABS = [
   { id: 'messages',      label: 'Mensagens',  Icon: MessageSquare,  Component: MessagesAdmin     },
   { id: 'stock',         label: 'Loja',       Icon: ShoppingBag,    Component: StockAdmin        },
   { id: 'home',          label: 'Home',       Icon: Home,           Component: HomeAdmin         },
+  { id: 'notifications', label: 'Notif.',     Icon: Bell,           Component: NotificationsAdmin },
 ]
 
 export default function AdminLayout({ onNavigate }) {

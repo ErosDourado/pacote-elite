@@ -5,6 +5,7 @@ import { observeAuth, signOut as authSignOut } from '../services/authService'
 import { subscribeAdminStatus } from '../services/adminsService'
 import { subscribeServices } from '../services/servicesService'
 import { isFirebaseConfigured } from '../firebase'
+import { notifyOwner } from '../services/notificationsService'
 import {
   INITIAL_SERVICES,
   INITIAL_PRODUCTS,
@@ -194,6 +195,13 @@ export function AppProvider({ children }) {
   const addAppointment = (data) => {
     const a = { ...data, id: Date.now(), createdAt: new Date().toISOString(), status: 'pending', paymentStatus: 'pending' }
     setAppointments(prev => [a, ...prev])
+    if (firebaseOn) {
+      const [y, m, d] = a.date.split('-')
+      notifyOwner(
+        '📅 Novo Agendamento',
+        `${a.clientName} · ${a.service?.name ?? ''} · ${d}/${m} às ${a.time}`
+      )
+    }
     return a
   }
 
@@ -211,6 +219,12 @@ export function AppProvider({ children }) {
       ...data,
     }
     setWaitlist(prev => [...prev, entry])
+    if (firebaseOn) {
+      notifyOwner(
+        '⏳ Fila de Espera',
+        `${data.clientName} quer ${data.service?.name ?? 'um horário'}`
+      )
+    }
     return entry
   }
   const removeFromWaitlist = (id) =>
