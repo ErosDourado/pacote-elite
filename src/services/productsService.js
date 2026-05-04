@@ -26,7 +26,7 @@ import {
 import { db } from '../firebase'
 
 const COLLECTION = 'products'
-const colRef = collection(db, COLLECTION)
+const colRef = db ? collection(db, COLLECTION) : null
 
 /** Cria novo produto. */
 export async function createProduct(data) {

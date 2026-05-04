@@ -22,7 +22,7 @@ import {
 import { db } from '../firebase'
 
 const COLLECTION = 'links'
-const colRef = collection(db, COLLECTION)
+const colRef = db ? collection(db, COLLECTION) : null
 
 export async function createLink(data) {
   const payload = {

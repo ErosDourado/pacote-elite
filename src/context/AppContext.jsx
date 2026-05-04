@@ -4,6 +4,14 @@ import { brandConfig } from '../brandConfig'
 import { observeAuth, signOut as authSignOut } from '../services/authService'
 import { subscribeAdminStatus } from '../services/adminsService'
 import { subscribeServices } from '../services/servicesService'
+import { subscribeProducts, createProduct, updateProduct as fsUpdateProduct, deleteProduct, toggleProductStock } from '../services/productsService'
+import { subscribeBanners, createBanner, updateBanner as fsUpdateBanner, deleteBanner } from '../services/bannersService'
+import { subscribeFeedPosts, createFeedPost, updateFeedPost as fsUpdateFeedPost, deleteFeedPost } from '../services/feedService'
+import { subscribeProcedures, createProcedure, updateProcedure as fsUpdateProcedure, deleteProcedure } from '../services/proceduresService'
+import { subscribeGallery, createGalleryPhoto, updateGalleryPhoto as fsUpdateGalleryPhoto, deleteGalleryPhoto } from '../services/galleryService'
+import { subscribeAppointments, createAppointment, updateAppointmentStatus as fsUpdateApptStatus, deleteAppointment as fsDeleteAppt } from '../services/appointmentsService'
+import { subscribeWaitlist, createWaitlistEntry, deleteWaitlistEntry, markNotified } from '../services/waitlistService'
+import { subscribeLinks, createLink, updateLink as fsUpdateLink, deleteLink } from '../services/linksService'
 import { isFirebaseConfigured } from '../firebase'
 import { notifyOwner } from '../services/notificationsService'
 import {
@@ -34,70 +42,35 @@ const safeSave = (key, value) => {
 }
 
 export function AppProvider({ children }) {
-  // ── Estado principal ──────────────────────────────────────────
-  const [services,     setServices]     = useState(() => load('svc',    INITIAL_SERVICES))
-  const [products,     setProducts]     = useState(() => load('prod',   INITIAL_PRODUCTS))
-  const [banners,      setBanners]      = useState(() => load('bnr',    INITIAL_BANNERS))
+  const firebaseOn = isFirebaseConfigured()
+
+  // ── Estado — conteúdo compartilhado (Firestore quando online) ──
+  const [services,     setServices]     = useState(INITIAL_SERVICES)
+  const [products,     setProducts]     = useState(INITIAL_PRODUCTS)
+  const [banners,      setBanners]      = useState(INITIAL_BANNERS)
+  const [feedPosts,    setFeedPosts]    = useState(INITIAL_FEED)
+  const [procedures,   setProcedures]   = useState(INITIAL_PROCEDURES)
+  const [gallery,      setGallery]      = useState(INITIAL_GALLERY)
+  const [appointments, setAppointments] = useState(INITIAL_APPOINTMENTS)
+  const [waitlist,     setWaitlist]     = useState(INITIAL_WAITLIST)
+  const [links,        setLinks]        = useState(INITIAL_LINKS)
+
+  // ── Estado — local (localStorage, por dispositivo) ─────────────
   const [highlights,   setHighlights]   = useState(() => load('hl',     INITIAL_HIGHLIGHTS))
-  const [feedPosts,    setFeedPosts]    = useState(() => load('feed',   INITIAL_FEED))
-  const [procedures,   setProcedures]   = useState(() => load('procs',  INITIAL_PROCEDURES))
-  const [links,        setLinks]        = useState(() => load('links',  INITIAL_LINKS))
   const [waTemplates,  setWaTemplates]  = useState(() => load('watpl',  INITIAL_WA_TEMPLATES))
-  const [appointments, setAppointments] = useState(() => load('appts',    INITIAL_APPOINTMENTS))
-  const [blocks,       setBlocks]       = useState(() => load('blocks',   INITIAL_BLOCKS))
-  const [waitlist,     setWaitlist]     = useState(() => load('waitlist', INITIAL_WAITLIST))
-  const [gallery,      setGallery]      = useState(() => load('gallery',  INITIAL_GALLERY))
+  const [blocks,       setBlocks]       = useState(() => load('blocks', INITIAL_BLOCKS))
   const [profile,      setProfileState] = useState(() => load('prof',   { name: '', phone: '', email: '' }))
-  const [cart,         setCart]         = useState(() => load('cart',    []))
+  const [cart,         setCart]         = useState(() => load('cart',   []))
 
   const DEFAULT_WH = { start: '09:00', end: '18:00', lunchStart: '12:00', lunchEnd: '13:00', interval: 60 }
   const [workingHours, setWorkingHoursState] = useState(() => load('workingHours', DEFAULT_WH))
 
-  // ── Mapa de imagens (IndexedDB) ───────────────────────────────
+  // ── Mapa de imagens (IndexedDB — backward compat para idb: keys) ─
   const [imageMap, setImageMap] = useState({})
 
   useEffect(() => {
-    async function init() {
-      // 1. Carrega todas as imagens do IndexedDB
-      const map = await idbAll()
-
-      // 2. Migra base64 antigos do localStorage → IndexedDB
-      const migrate = async (items, ...fields) => {
-        let changed = false
-        const result = await Promise.all(items.map(async item => {
-          const patch = {}
-          for (const f of fields) {
-            if (item[f]?.startsWith('data:')) {
-              const k = 'idb:' + Date.now() + '_' + (Math.random() * 1e6 | 0)
-              await idbPut(k, item[f])
-              map[k] = item[f]
-              patch[f] = k
-              changed = true
-            }
-          }
-          return changed ? { ...item, ...patch } : item
-        }))
-        return changed ? result : null
-      }
-
-      const [mf, mb, mp, mg, mpr] = await Promise.all([
-        migrate(load('feed',    []), 'imageUrl'),
-        migrate(load('bnr',     []), 'url'),
-        migrate(load('procs',   []), 'imagem'),
-        migrate(load('gallery', []), 'url'),
-        migrate(load('prod',    []), 'imageUrl'),
-      ])
-
-      if (mf)  setFeedPosts(mf)
-      if (mb)  setBanners(mb)
-      if (mp)  setProcedures(mp)
-      if (mg)  setGallery(mg)
-      if (mpr) setProducts(mpr)
-
-      setImageMap({ ...map })
-    }
-    init()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    idbAll().then(map => setImageMap(map))
+  }, [])
 
   const resolveImage = useCallback((src) => {
     if (!src) return ''
@@ -115,20 +88,25 @@ export function AppProvider({ children }) {
   }, [])
 
   // ── Auth real (Firebase) ──────────────────────────────────────
-  // Se Firebase não estiver configurado, usa modo dev (isAdmin=true)
-  const firebaseOn = isFirebaseConfigured()
   const [currentUser, setCurrentUser] = useState(null)
-  const [isAdmin,     setIsAdmin]     = useState(false) // segurança: começa sempre como false
-  const [authLoading, setAuthLoading] = useState(firebaseOn)  // se Firebase ON, começa carregando
+  const [isAdmin,     setIsAdmin]     = useState(false)
+  const [authLoading, setAuthLoading] = useState(firebaseOn)
 
-  // Sincroniza serviços do Firestore quando Firebase está configurado
+  // ── Subscriptions Firestore (todos os conteúdos compartilhados) ─
   useEffect(() => {
     if (!firebaseOn) return
-    const unsub = subscribeServices(
-      items => setServices(items),
-      err => console.error('[AppContext] services sync:', err)
-    )
-    return () => unsub()
+    const unsubs = [
+      subscribeServices(setServices,     e => console.error('[ctx] services:', e)),
+      subscribeProducts(setProducts,     e => console.error('[ctx] products:', e)),
+      subscribeBanners(setBanners,       e => console.error('[ctx] banners:', e)),
+      subscribeFeedPosts(setFeedPosts,   e => console.error('[ctx] feed:', e)),
+      subscribeProcedures(setProcedures, e => console.error('[ctx] procedures:', e)),
+      subscribeGallery(setGallery,       e => console.error('[ctx] gallery:', e)),
+      subscribeAppointments(setAppointments, e => console.error('[ctx] appts:', e)),
+      subscribeWaitlist(setWaitlist,     e => console.error('[ctx] waitlist:', e)),
+      subscribeLinks(setLinks,           e => console.error('[ctx] links:', e)),
+    ]
+    return () => unsubs.forEach(u => u())
   }, [firebaseOn])
 
   // Observa mudanças de login + status admin
@@ -137,10 +115,8 @@ export function AppProvider({ children }) {
     let unsubAdmin = null
     const unsubAuth = observeAuth(user => {
       setCurrentUser(user)
-      // Cancela subscribe admin anterior
       if (unsubAdmin) { unsubAdmin(); unsubAdmin = null }
       if (user?.email) {
-        // Sincroniza email no profile do app
         setProfileState(prev => ({ ...prev, email: user.email, name: prev.name || user.displayName || '' }))
         unsubAdmin = subscribeAdminStatus(user.email, (admin) => {
           setIsAdmin(admin)
@@ -158,24 +134,15 @@ export function AppProvider({ children }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firebaseOn])
 
-  // ── Persistência automática ───────────────────────────────────
-  useEffect(() => { safeSave('svc',         services)     }, [services])
-  useEffect(() => { safeSave('prod',        products)     }, [products])
-  useEffect(() => { safeSave('bnr',         banners)      }, [banners])
+  // ── Persistência local (somente estado local) ─────────────────
   useEffect(() => { safeSave('hl',          highlights)   }, [highlights])
-  useEffect(() => { safeSave('feed',        feedPosts)    }, [feedPosts])
-  useEffect(() => { safeSave('procs',       procedures)   }, [procedures])
-  useEffect(() => { safeSave('links',       links)        }, [links])
   useEffect(() => { safeSave('watpl',       waTemplates)  }, [waTemplates])
-  useEffect(() => { safeSave('appts',       appointments) }, [appointments])
   useEffect(() => { safeSave('blocks',      blocks)       }, [blocks])
-  useEffect(() => { safeSave('waitlist',    waitlist)     }, [waitlist])
-  useEffect(() => { safeSave('gallery',     gallery)      }, [gallery])
   useEffect(() => { safeSave('prof',        profile)      }, [profile])
   useEffect(() => { safeSave('cart',        cart)         }, [cart])
   useEffect(() => { safeSave('workingHours', workingHours) }, [workingHours])
 
-  // Gera lista de horários disponíveis a partir da configuração
+  // Gera lista de horários disponíveis
   const availableHours = useMemo(() => {
     const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + (m || 0) }
     const toStr = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
@@ -192,56 +159,71 @@ export function AppProvider({ children }) {
   const setWorkingHours = (data) => setWorkingHoursState(prev => ({ ...prev, ...data }))
 
   // ── Agendamentos ──────────────────────────────────────────────
-  const addAppointment = (data) => {
-    const a = { ...data, id: Date.now(), createdAt: new Date().toISOString(), status: 'pending', paymentStatus: 'pending' }
-    setAppointments(prev => [a, ...prev])
+  const addAppointment = async (data) => {
+    const a = { ...data, status: 'pending', paymentStatus: 'pending' }
     if (firebaseOn) {
-      const [y, m, d] = a.date.split('-')
-      notifyOwner(
-        '📅 Novo Agendamento',
-        `${a.clientName} · ${a.service?.name ?? ''} · ${d}/${m} às ${a.time}`
-      )
+      const id = await createAppointment(a)
+      if (data.date && data.time) {
+        const [y, m, d] = data.date.split('-')
+        notifyOwner(
+          '📅 Novo Agendamento',
+          `${data.clientName} · ${data.service?.name ?? ''} · ${d}/${m} às ${data.time}`
+        )
+      }
+      return { ...a, id }
     }
-    return a
+    const local = { ...a, id: Date.now(), createdAt: new Date().toISOString() }
+    setAppointments(prev => [local, ...prev])
+    return local
   }
 
-  /** Verifica se um horário está ocupado (não cancelado). */
   const isSlotTaken = (date, time) =>
     appointments.some(a => a.date === date && a.time === time && a.status !== 'cancelled')
 
+  const cancelAppointment  = (id) => firebaseOn
+    ? fsUpdateApptStatus(id, 'cancelled')
+    : setAppointments(prev => prev.map(a => a.id === id ? { ...a, status: 'cancelled', paymentStatus: 'refunded' } : a))
+
+  const completeAppointment = (id) => firebaseOn
+    ? fsUpdateApptStatus(id, 'completed')
+    : setAppointments(prev => prev.map(a => a.id === id ? { ...a, status: 'completed', paymentStatus: 'paid' } : a))
+
+  const deleteAppointment = (id) => firebaseOn
+    ? fsDeleteAppt(id)
+    : setAppointments(prev => prev.filter(a => a.id !== id))
+
+  const updateAppointmentStatus = (id, status) => {
+    if (firebaseOn) return fsUpdateApptStatus(id, status)
+    const payMap = { completed: 'paid', cancelled: 'refunded', confirmed: 'pending' }
+    setAppointments(prev => prev.map(a => a.id === id ? { ...a, status, paymentStatus: payMap[status] ?? a.paymentStatus } : a))
+  }
+
   // ── Fila de Espera ────────────────────────────────────────────
-  const addToWaitlist = (data) => {
-    const entry = {
-      id: Date.now(),
-      createdAt: new Date().toISOString(),
-      notifiedAt: null,
-      wantEarlier: false,
-      ...data,
-    }
-    setWaitlist(prev => [...prev, entry])
+  const addToWaitlist = async (data) => {
     if (firebaseOn) {
-      notifyOwner(
-        '⏳ Fila de Espera',
-        `${data.clientName} quer ${data.service?.name ?? 'um horário'}`
-      )
+      const id = await createWaitlistEntry(data)
+      notifyOwner('⏳ Fila de Espera', `${data.clientName} quer ${data.service?.name ?? 'um horário'}`)
+      return { ...data, id }
     }
+    const entry = { id: Date.now(), createdAt: new Date().toISOString(), notifiedAt: null, wantEarlier: false, ...data }
+    setWaitlist(prev => [...prev, entry])
     return entry
   }
-  const removeFromWaitlist = (id) =>
-    setWaitlist(prev => prev.filter(w => w.id !== id))
-  const markWaitlistNotified = (id) =>
-    setWaitlist(prev => prev.map(w => w.id === id ? { ...w, notifiedAt: new Date().toISOString() } : w))
 
-  /** Encontra candidatos da fila pra um slot liberado.
-   *  Match exato em date+time, OU wantEarlier+(slot anterior à preferência). */
+  const removeFromWaitlist = (id) => firebaseOn
+    ? deleteWaitlistEntry(id)
+    : setWaitlist(prev => prev.filter(w => w.id !== id))
+
+  const markWaitlistNotified = (id) => firebaseOn
+    ? markNotified(id)
+    : setWaitlist(prev => prev.map(w => w.id === id ? { ...w, notifiedAt: new Date().toISOString() } : w))
+
   const findWaitlistCandidates = ({ date, time, serviceId } = {}) => {
     if (!date || !time) return []
     return waitlist.filter(entry => {
       if (entry.notifiedAt) return false
       if (serviceId && entry.serviceId && String(entry.serviceId) !== String(serviceId)) return false
-      // Match exato
       if (entry.preferredDate === date && entry.preferredTime === time) return true
-      // wantEarlier: aceita vaga ANTES da preferência
       if (entry.wantEarlier && entry.preferredDate) {
         if (date < entry.preferredDate) return true
         if (date === entry.preferredDate && time < entry.preferredTime) return true
@@ -250,17 +232,18 @@ export function AppProvider({ children }) {
     })
   }
 
-  // ── Galeria do Studio ────────────────────────────────────────
-  const addGalleryPhoto    = (p)     => setGallery(prev => [...prev, { ...p, id: Date.now() }])
-  const removeGalleryPhoto = (id)    => setGallery(prev => prev.filter(g => g.id !== id))
-  const updateGalleryPhoto = (id, p) => setGallery(prev => prev.map(g => g.id === id ? { ...g, ...p } : g))
-  const cancelAppointment  = (id) => setAppointments(prev => prev.map(a => a.id === id ? { ...a, status: 'cancelled', paymentStatus: 'refunded' } : a))
-  const completeAppointment = (id) => setAppointments(prev => prev.map(a => a.id === id ? { ...a, status: 'completed', paymentStatus: 'paid' } : a))
-  const deleteAppointment = (id) => setAppointments(prev => prev.filter(a => a.id !== id))
-  const updateAppointmentStatus = (id, status) => {
-    const payMap = { completed: 'paid', cancelled: 'refunded', confirmed: 'pending' }
-    setAppointments(prev => prev.map(a => a.id === id ? { ...a, status, paymentStatus: payMap[status] ?? a.paymentStatus } : a))
-  }
+  // ── Galeria ───────────────────────────────────────────────────
+  const addGalleryPhoto = (p) => firebaseOn
+    ? createGalleryPhoto({ ...p, order: Date.now() })
+    : setGallery(prev => [...prev, { ...p, id: Date.now() }])
+
+  const removeGalleryPhoto = (id) => firebaseOn
+    ? deleteGalleryPhoto(id)
+    : setGallery(prev => prev.filter(g => g.id !== id))
+
+  const updateGalleryPhoto = (id, p) => firebaseOn
+    ? fsUpdateGalleryPhoto(id, p)
+    : setGallery(prev => prev.map(g => g.id === id ? { ...g, ...p } : g))
 
   // ── Serviços ──────────────────────────────────────────────────
   const addService    = (s)     => setServices(prev => [...prev, { ...s, id: Date.now() }])
@@ -268,43 +251,88 @@ export function AppProvider({ children }) {
   const updateService = (id, p) => setServices(prev => prev.map(s => s.id === id ? { ...s, ...p } : s))
 
   // ── Produtos ──────────────────────────────────────────────────
-  const addProduct    = (p)     => setProducts(prev => [...prev, { ...p, id: Date.now(), inStock: true, stockQty: parseInt(p.stockQty) || 0 }])
-  const removeProduct = (id)    => setProducts(prev => prev.filter(p => p.id !== id))
-  const updateProduct = (id, p) => setProducts(prev => prev.map(x => x.id === id ? { ...x, ...p } : x))
-  const toggleStock   = (id)    => setProducts(prev => prev.map(p => p.id === id ? { ...p, inStock: !p.inStock } : p))
+  const addProduct = (p) => firebaseOn
+    ? createProduct({ ...p, inStock: true, stockQty: parseInt(p.stockQty) || 0, order: Date.now() })
+    : setProducts(prev => [...prev, { ...p, id: Date.now(), inStock: true, stockQty: parseInt(p.stockQty) || 0 }])
+
+  const removeProduct = (id) => firebaseOn
+    ? deleteProduct(id)
+    : setProducts(prev => prev.filter(p => p.id !== id))
+
+  const updateProduct = (id, p) => firebaseOn
+    ? fsUpdateProduct(id, p)
+    : setProducts(prev => prev.map(x => x.id === id ? { ...x, ...p } : x))
+
+  const toggleStock = (id) => {
+    if (firebaseOn) {
+      const prod = products.find(p => p.id === id)
+      if (prod) toggleProductStock(id, prod.inStock)
+    } else {
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, inStock: !p.inStock } : p))
+    }
+  }
 
   // ── Banners ───────────────────────────────────────────────────
-  const addBanner    = (b)     => setBanners(prev => [...prev, { ...b, id: Date.now() }])
-  const removeBanner = (id)    => setBanners(prev => prev.filter(b => b.id !== id))
-  const updateBanner = (id, p) => setBanners(prev => prev.map(b => b.id === id ? { ...b, ...p } : b))
+  const addBanner = (b) => firebaseOn
+    ? createBanner({ ...b, order: Date.now() })
+    : setBanners(prev => [...prev, { ...b, id: Date.now() }])
+
+  const removeBanner = (id) => firebaseOn
+    ? deleteBanner(id)
+    : setBanners(prev => prev.filter(b => b.id !== id))
+
+  const updateBanner = (id, p) => firebaseOn
+    ? fsUpdateBanner(id, p)
+    : setBanners(prev => prev.map(b => b.id === id ? { ...b, ...p } : b))
 
   // ── Feed ──────────────────────────────────────────────────────
-  const addFeedPost    = (post) => setFeedPosts(prev => [{ ...post, id: Date.now(), createdAt: new Date().toISOString().split('T')[0] }, ...prev])
-  const removeFeedPost = (id)   => setFeedPosts(prev => prev.filter(p => p.id !== id))
-  const updateFeedPost = (id, p) => setFeedPosts(prev => prev.map(x => x.id === id ? { ...x, ...p } : x))
+  const addFeedPost = (post) => firebaseOn
+    ? createFeedPost(post)
+    : setFeedPosts(prev => [{ ...post, id: Date.now(), createdAt: new Date().toISOString().split('T')[0] }, ...prev])
+
+  const removeFeedPost = (id) => firebaseOn
+    ? deleteFeedPost(id)
+    : setFeedPosts(prev => prev.filter(p => p.id !== id))
+
+  const updateFeedPost = (id, p) => firebaseOn
+    ? fsUpdateFeedPost(id, p)
+    : setFeedPosts(prev => prev.map(x => x.id === id ? { ...x, ...p } : x))
 
   // ── Destaques ─────────────────────────────────────────────────
   const addHighlight    = (h)   => setHighlights(prev => [...prev, { ...h, id: Date.now() }])
   const removeHighlight = (id)  => setHighlights(prev => prev.filter(h => h.id !== id))
 
   // ── Procedimentos ─────────────────────────────────────────────
-  const addProcedure    = (p)   => setProcedures(prev => [...prev, { ...p, id: Date.now() }])
-  const removeProcedure = (id)  => setProcedures(prev => prev.filter(p => p.id !== id))
-  const updateProcedure = (id, p) => setProcedures(prev => prev.map(x => x.id === id ? { ...x, ...p } : x))
+  const addProcedure = (p) => firebaseOn
+    ? createProcedure({ ...p, order: Date.now() })
+    : setProcedures(prev => [...prev, { ...p, id: Date.now() }])
 
-  // ── Links externos (Linktree) ────────────────────────────────
-  const addLink    = (l)   => setLinks(prev => [...prev, { ...l, id: Date.now() }])
-  const removeLink = (id)  => setLinks(prev => prev.filter(l => l.id !== id))
-  const updateLink = (id, l) => setLinks(prev => prev.map(x => x.id === id ? { ...x, ...l } : x))
+  const removeProcedure = (id) => firebaseOn
+    ? deleteProcedure(id)
+    : setProcedures(prev => prev.filter(p => p.id !== id))
 
-  // ── Templates do WhatsApp ────────────────────────────────────
+  const updateProcedure = (id, p) => firebaseOn
+    ? fsUpdateProcedure(id, p)
+    : setProcedures(prev => prev.map(x => x.id === id ? { ...x, ...p } : x))
+
+  // ── Links externos ────────────────────────────────────────────
+  const addLink = (l) => firebaseOn
+    ? createLink({ ...l, order: Date.now() })
+    : setLinks(prev => [...prev, { ...l, id: Date.now() }])
+
+  const removeLink = (id) => firebaseOn
+    ? deleteLink(id)
+    : setLinks(prev => prev.filter(l => l.id !== id))
+
+  const updateLink = (id, l) => firebaseOn
+    ? fsUpdateLink(id, l)
+    : setLinks(prev => prev.map(x => x.id === id ? { ...x, ...l } : x))
+
+  // ── Templates WhatsApp ────────────────────────────────────────
   const updateWaTemplate = (status, msg) => setWaTemplates(prev => ({ ...prev, [status]: msg }))
 
-  // ── VIP do cliente ───────────────────────────────────────────
-  const isVipClient = (phone) => {
-    const list = profile.vipPhones || []
-    return list.includes(phone)
-  }
+  // ── VIP do cliente ────────────────────────────────────────────
+  const isVipClient = (phone) => (profile.vipPhones || []).includes(phone)
   const toggleVip = (phone) => {
     setProfileState(prev => {
       const list = prev.vipPhones || []
@@ -326,16 +354,14 @@ export function AppProvider({ children }) {
       return [...prev, { id: Date.now(), productId: product.id, name: product.name, price: product.price, pickupOption, qty: 1 }]
     })
   }
-  const removeFromCart  = (id)       => setCart(prev => prev.filter(i => i.id !== id))
-  const updateCartQty   = (id, qty)  => qty <= 0 ? removeFromCart(id) : setCart(prev => prev.map(i => i.id === id ? { ...i, qty } : i))
-  const clearCart       = ()         => setCart([])
+  const removeFromCart  = (id)      => setCart(prev => prev.filter(i => i.id !== id))
+  const updateCartQty   = (id, qty) => qty <= 0 ? removeFromCart(id) : setCart(prev => prev.map(i => i.id === id ? { ...i, qty } : i))
+  const clearCart       = ()        => setCart([])
 
   // ── Perfil da cliente ─────────────────────────────────────────
   const setProfile = (data) => setProfileState(prev => ({ ...prev, ...data }))
 
   // ── Auth admin ────────────────────────────────────────────────
-  // Compat: loginAdmin/logoutAdmin antigos.
-  // logout faz signOut real do Firebase (se houver).
   const loginAdmin  = (pin) => { if (pin === brandConfig.adminPin) { setIsAdmin(true); return true } return false }
   const logoutAdmin = async () => {
     if (firebaseOn) {
@@ -360,17 +386,14 @@ export function AppProvider({ children }) {
     return Object.values(map).sort((a, b) => b.lastVisit.localeCompare(a.lastVisit))
   }, [appointments])
 
-  // ── Métricas financeiras (derivadas dos agendamentos) ─────────
+  // ── Métricas financeiras ──────────────────────────────────────
   const finance = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0]
     const nowMonth = todayStr.slice(0, 7)
-
     const paid = appointments.filter(a => a.paymentStatus === 'paid')
-    const todayPaid  = paid.filter(a => a.date === todayStr)
-    const monthPaid  = paid.filter(a => a.date.startsWith(nowMonth))
-
+    const todayPaid = paid.filter(a => a.date === todayStr)
+    const monthPaid = paid.filter(a => a.date.startsWith(nowMonth))
     const sum = arr => arr.reduce((s, a) => s + (a.service?.price ?? 0), 0)
-
     return {
       revenueToday:  sum(todayPaid),
       revenueMonth:  sum(monthPaid),
@@ -384,49 +407,28 @@ export function AppProvider({ children }) {
 
   return (
     <AppContext.Provider value={{
-      // Estado
       services, products, banners, highlights, feedPosts, procedures, links, waTemplates,
       appointments, blocks, waitlist, gallery, profile, cart, workingHours, availableHours, isAdmin,
-      // Auth
       currentUser, authLoading, firebaseOn,
-      // Derivados
       clients, finance,
-      // Agendamentos
       addAppointment, cancelAppointment, completeAppointment, deleteAppointment, updateAppointmentStatus,
       isSlotTaken,
-      // Fila de Espera
       addToWaitlist, removeFromWaitlist, markWaitlistNotified, findWaitlistCandidates,
-      // Galeria
       addGalleryPhoto, removeGalleryPhoto, updateGalleryPhoto,
-      // Serviços
       addService, removeService, updateService,
-      // Produtos
       addProduct, removeProduct, updateProduct, toggleStock,
-      // Banners
       addBanner, removeBanner, updateBanner,
-      // Feed
       addFeedPost, removeFeedPost, updateFeedPost,
-      // Destaques
       addHighlight, removeHighlight,
-      // Procedimentos
       addProcedure, removeProcedure, updateProcedure,
-      // Links externos
       addLink, removeLink, updateLink,
-      // Templates WA
       updateWaTemplate,
-      // VIP
       isVipClient, toggleVip,
-      // Disponibilidade
       addBlock, removeBlock, updateBlock,
-      // Perfil
       setProfile,
-      // Carrinho
       addToCart, removeFromCart, updateCartQty, clearCart,
-      // Horários
       setWorkingHours,
-      // Imagens (IndexedDB)
       resolveImage, registerImage, unregisterImage,
-      // Auth
       loginAdmin, logoutAdmin,
     }}>
       {children}

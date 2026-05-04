@@ -26,7 +26,7 @@ import {
 import { db } from '../firebase'
 
 const COLLECTION = 'banners'
-const colRef = collection(db, COLLECTION)
+const colRef = db ? collection(db, COLLECTION) : null
 
 export async function createBanner(data) {
   const payload = {

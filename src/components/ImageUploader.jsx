@@ -2,6 +2,8 @@ import { useRef, useState } from 'react'
 import { Upload, X } from 'lucide-react'
 import { idbPut } from '../utils/imageDB'
 import { useApp } from '../context/AppContext'
+import { uploadImage, deleteImage } from '../services/imageStorageService'
+import { storage } from '../firebase'
 
 // Comprime imagem para JPEG ≤ 900px / 75%
 function compressImage(file, maxW = 900, quality = 0.75) {
@@ -22,16 +24,8 @@ function compressImage(file, maxW = 900, quality = 0.75) {
   })
 }
 
-/**
- * Props:
- *   value           string  Chave IDB ("idb:…"), URL ou base64 atual
- *   position        string  "X% Y%" do focal point
- *   onChangeImage   fn(v)
- *   onChangePosition fn(v)
- *   label           string
- *   height          number  (default 160)
- *   allowUrl        bool
- */
+const isStorageUrl = (v) => v?.startsWith('https://firebasestorage.googleapis.com')
+
 export default function ImageUploader({
   value,
   position = '50% 50%',
@@ -43,6 +37,7 @@ export default function ImageUploader({
 }) {
   const pickerRef = useRef(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const { resolveImage, registerImage, unregisterImage } = useApp()
 
   const resolvedSrc = resolveImage(value)
@@ -50,20 +45,36 @@ export default function ImageUploader({
   const handleFile = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
-    try {
-      // Remove imagem IDB anterior ao trocar
-      if (value?.startsWith('idb:')) unregisterImage(value)
-      const b64 = await compressImage(file)
-      const key  = 'idb:' + Date.now()
-      await idbPut(key, b64)
-      registerImage(key, b64)
-      onChangeImage(key)
-    } catch { /* silently ignore */ }
     e.target.value = ''
+    try {
+      const b64 = await compressImage(file)
+
+      if (storage) {
+        // Firebase Storage: upload e salva URL pública
+        setUploading(true)
+        const oldVal = value
+        const url = await uploadImage(b64)
+        if (isStorageUrl(oldVal)) deleteImage(oldVal).catch(() => {})
+        else if (oldVal?.startsWith('idb:')) unregisterImage(oldVal)
+        onChangeImage(url)
+      } else {
+        // Fallback local (dev sem Firebase)
+        if (value?.startsWith('idb:')) unregisterImage(value)
+        const key = 'idb:' + Date.now()
+        await idbPut(key, b64)
+        registerImage(key, b64)
+        onChangeImage(key)
+      }
+    } catch (err) {
+      console.warn('[ImageUploader] upload error:', err?.message)
+    } finally {
+      setUploading(false)
+    }
   }
 
   const handleDelete = () => {
-    if (value?.startsWith('idb:')) unregisterImage(value)
+    if (isStorageUrl(value)) deleteImage(value).catch(() => {})
+    else if (value?.startsWith('idb:')) unregisterImage(value)
     onChangeImage('')
   }
 
@@ -87,7 +98,6 @@ export default function ImageUploader({
 
       {value ? (
         <div className="flex flex-col gap-2">
-          {/* Preview com focal point drag */}
           <div
             ref={pickerRef}
             className="relative rounded-2xl overflow-hidden"
@@ -130,7 +140,6 @@ export default function ImageUploader({
               </>
             )}
 
-            {/* Botão excluir */}
             <button
               type="button"
               onPointerDown={e => { e.preventDefault(); e.stopPropagation() }}
@@ -142,15 +151,14 @@ export default function ImageUploader({
             </button>
           </div>
 
-          {/* Botão trocar foto */}
           <label className="self-start cursor-pointer">
             <span
               className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-xl"
               style={{ background: 'rgba(120,120,128,0.10)', color: 'rgba(60,60,67,0.65)' }}
             >
-              <Upload size={11} strokeWidth={2} /> Trocar foto
+              <Upload size={11} strokeWidth={2} /> {uploading ? 'Enviando…' : 'Trocar foto'}
             </span>
-            <input type="file" accept="image/*" className="hidden" onChange={handleFile} />
+            <input type="file" accept="image/*" className="hidden" onChange={handleFile} disabled={uploading} />
           </label>
         </div>
       ) : (
@@ -160,10 +168,15 @@ export default function ImageUploader({
               className="rounded-2xl flex flex-col items-center justify-center gap-2 border-2 border-dashed"
               style={{ height: Math.min(height, 110), borderColor: 'rgba(120,120,128,0.22)' }}
             >
-              <Upload size={20} strokeWidth={1.5} className="text-label-3" />
-              <p className="text-[12px] text-label-2">Toque para selecionar uma foto</p>
+              {uploading
+                ? <p className="text-[12px] text-label-2">Enviando…</p>
+                : <>
+                    <Upload size={20} strokeWidth={1.5} className="text-label-3" />
+                    <p className="text-[12px] text-label-2">Toque para selecionar uma foto</p>
+                  </>
+              }
             </div>
-            <input type="file" accept="image/*" className="hidden" onChange={handleFile} />
+            <input type="file" accept="image/*" className="hidden" onChange={handleFile} disabled={uploading} />
           </label>
 
           {allowUrl && (

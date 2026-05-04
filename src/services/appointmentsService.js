@@ -26,7 +26,7 @@ import {
 import { db } from '../firebase'
 
 const COLLECTION = 'appointments'
-const colRef = collection(db, COLLECTION)
+const colRef = db ? collection(db, COLLECTION) : null
 
 /** Verifica se um horário está disponível.
  *  Considera ocupado se houver agendamento em date+time com status

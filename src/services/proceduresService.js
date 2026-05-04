@@ -23,7 +23,7 @@ import {
 import { db } from '../firebase'
 
 const COLLECTION = 'procedures'
-const colRef = collection(db, COLLECTION)
+const colRef = db ? collection(db, COLLECTION) : null
 
 export async function createProcedure(data) {
   const payload = {

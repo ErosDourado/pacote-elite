@@ -28,7 +28,7 @@ import {
 import { db } from '../firebase'
 
 const COLLECTION = 'fila_espera'
-const colRef = collection(db, COLLECTION)
+const colRef = db ? collection(db, COLLECTION) : null
 
 /** Adiciona cliente à fila de espera. */
 export async function createWaitlistEntry(data) {
