@@ -44,11 +44,12 @@ exports.notifyOwner = onCall(async (req) => {
     },
   })
 
-  // Limpa tokens inválidos
+  // Limpa apenas tokens verdadeiramente inválidos (não erros temporários)
+  const INVALID_CODES = ['messaging/registration-token-not-registered', 'messaging/invalid-registration-token']
   const toDelete = result.responses
-    .map((r, i) => (!r.success ? tokens[i] : null))
+    .map((r, i) => (!r.success && INVALID_CODES.includes(r.error?.code) ? tokens[i] : null))
     .filter(Boolean)
-  await Promise.all(toDelete.map(t => db.doc(`ownerTokens/${t}`).delete()))
+  if (toDelete.length) await Promise.all(toDelete.map(t => db.doc(`ownerTokens/${t}`).delete()))
 
   return { ok: true, sent: result.successCount, failed: result.failureCount }
 })

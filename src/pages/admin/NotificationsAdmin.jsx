@@ -16,8 +16,16 @@ export default function NotificationsAdmin() {
     if (saved) setToken(saved)
     if (!isPushSupported()) { setStatus('unsupported'); return }
     const p = getPushPermission()
-    if (p === 'granted' && saved) setStatus('granted')
-    else if (p === 'denied') setStatus('denied')
+    if (p === 'granted' && saved) {
+      setStatus('granted')
+      // Re-registra token no Firestore silenciosamente (garante que não foi deletado)
+      requestPushPermission().then(fresh => {
+        if (fresh && fresh !== saved) {
+          localStorage.setItem(TOKEN_KEY, fresh)
+          setToken(fresh)
+        }
+      }).catch(() => {})
+    } else if (p === 'denied') setStatus('denied')
     else setStatus('idle')
   }, [])
 
