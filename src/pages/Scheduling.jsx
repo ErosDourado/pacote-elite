@@ -725,7 +725,7 @@ export default function Scheduling({ pageState }) {
     goToStep(3)
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!name.trim() || !phone.trim()) {
       setError('Preencha nome e celular para continuar.')
       return
@@ -737,7 +737,7 @@ export default function Scheduling({ pageState }) {
       setSlotConflict({ date, time })
       return
     }
-    const a = addAppointment({
+    const a = await addAppointment({
       service:     svc,
       date,
       time,
@@ -749,7 +749,7 @@ export default function Scheduling({ pageState }) {
     // Se a cliente marcou "me avisa se abrir vaga antes", entra na fila
     // mesmo com o agendamento confirmado (wantEarlier: true).
     if (wantNotified) {
-      addToWaitlist({
+      await addToWaitlist({
         clientName:    name.trim(),
         clientPhone:   phone.trim(),
         clientEmail:   email.trim(),
@@ -767,8 +767,8 @@ export default function Scheduling({ pageState }) {
   }
 
   // Cliente decidiu entrar na fila de espera
-  const handleJoinWaitlist = ({ wantEarlier }) => {
-    addToWaitlist({
+  const handleJoinWaitlist = async ({ wantEarlier }) => {
+    await addToWaitlist({
       clientName:    name.trim(),
       clientPhone:   phone.trim(),
       clientEmail:   email.trim(),
