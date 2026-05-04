@@ -76,14 +76,14 @@ export async function createAppointment(data) {
 
 /** Lê todos os agendamentos ordenados por data (decrescente). */
 export async function listAppointments() {
-  const q = query(colRef, orderBy('date', 'desc'), orderBy('time', 'asc'))
+  const q = query(colRef, orderBy('date', 'desc'))
   const snap = await getDocs(q)
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
 }
 
 /** Subscribe em tempo real — todos os agendamentos. */
 export function subscribeAppointments(onData, onError) {
-  const q = query(colRef, orderBy('date', 'desc'), orderBy('time', 'asc'))
+  const q = query(colRef, orderBy('date', 'desc'))
   return onSnapshot(
     q,
     snap => onData(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
@@ -96,7 +96,7 @@ export function subscribeAppointments(onData, onError) {
 
 /** Subscribe filtrado por data ('YYYY-MM-DD'). Útil pra view do dia. */
 export function subscribeAppointmentsByDate(dateStr, onData, onError) {
-  const q = query(colRef, where('date', '==', dateStr), orderBy('time', 'asc'))
+  const q = query(colRef, where('date', '==', dateStr))
   return onSnapshot(
     q,
     snap => onData(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
