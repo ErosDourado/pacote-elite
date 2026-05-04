@@ -30,7 +30,7 @@ function HeroBanner({ banners, onCtaClick, resolveImage }) {
     update()
     window.addEventListener('resize', update)
     return () => window.removeEventListener('resize', update)
-  }, [])
+  }, [banners])
 
   // Auto-advance
   useEffect(() => {
