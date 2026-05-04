@@ -91,23 +91,77 @@ export function AppProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null)
   const [isAdmin,     setIsAdmin]     = useState(false)
   const [authLoading, setAuthLoading] = useState(firebaseOn)
+  const [dataLoaded,  setDataLoaded]  = useState(!firebaseOn) // Se offline, já está pronto (mock)
 
   // ── Subscriptions Firestore (todos os conteúdos compartilhados) ─
   useEffect(() => {
     if (!firebaseOn) return
+
+    // Conjunto para rastrear quais coleções já emitiram o primeiro dado
+    const critical = new Set(['services', 'products', 'banners', 'feed', 'procedures', 'gallery', 'links'])
+    const emitted = new Set()
+
+    const checkReady = (key, data) => {
+      emitted.add(key)
+      
+      // Se forem banners e houver algum, tentamos pre-carregar a primeira imagem
+      if (key === 'banners' && data?.length > 0) {
+        const firstBanner = data[0]
+        const src = resolveImage(firstBanner.url)
+        if (src && !src.startsWith('idb:')) { // Pre-load apenas se for URL externa/Firebase
+          const img = new Image()
+          img.src = src
+          img.onload = () => {
+            emitted.add('banner_img')
+            finishIfReady()
+          }
+          img.onerror = () => {
+            emitted.add('banner_img')
+            finishIfReady()
+          }
+        } else {
+          emitted.add('banner_img')
+        }
+      } else if (key === 'banners') {
+        emitted.add('banner_img')
+      }
+
+      finishIfReady()
+    }
+
+    const finishIfReady = () => {
+      const hasBanners = emitted.has('banner_img')
+      if (emitted.size >= critical.size + (hasBanners ? 1 : 0)) {
+        setTimeout(() => setDataLoaded(true), 400)
+      }
+    }
+
     const unsubs = [
-      subscribeServices(setServices,     e => console.error('[ctx] services:', e)),
-      subscribeProducts(setProducts,     e => console.error('[ctx] products:', e)),
-      subscribeBanners(setBanners,       e => console.error('[ctx] banners:', e)),
-      subscribeFeedPosts(setFeedPosts,   e => console.error('[ctx] feed:', e)),
-      subscribeProcedures(setProcedures, e => console.error('[ctx] procedures:', e)),
-      subscribeGallery(setGallery,       e => console.error('[ctx] gallery:', e)),
+      subscribeServices(s => { setServices(s); checkReady('services') }, e => console.error('[ctx] services:', e)),
+      subscribeProducts(s => { setProducts(s); checkReady('products') }, e => console.error('[ctx] products:', e)),
+      subscribeBanners(s =>  { setBanners(s);  checkReady('banners', s) }, e => console.error('[ctx] banners:', e)),
+      subscribeFeedPosts(s => { setFeedPosts(s); checkReady('feed')     }, e => console.error('[ctx] feed:', e)),
+      subscribeProcedures(s => { setProcedures(s); checkReady('procedures') }, e => console.error('[ctx] procedures:', e)),
+      subscribeGallery(s => { setGallery(s);   checkReady('gallery') }, e => console.error('[ctx] gallery:', e)),
+      subscribeLinks(s =>   { setLinks(s);     checkReady('links')   }, e => console.error('[ctx] links:', e)),
+
       subscribeAppointments(setAppointments, e => console.error('[ctx] appts:', e)),
       subscribeWaitlist(setWaitlist,     e => console.error('[ctx] waitlist:', e)),
-      subscribeLinks(setLinks,           e => console.error('[ctx] links:', e)),
     ]
     return () => unsubs.forEach(u => u())
-  }, [firebaseOn])
+  }, [firebaseOn, resolveImage])
+
+  // Pre-load de imagens dos banners para evitar "pulo" visual
+  useEffect(() => {
+    if (!dataLoaded || banners.length === 0) return
+    banners.forEach(b => {
+      const src = resolveImage(b.url)
+      if (src) {
+        const img = new Image()
+        img.src = src
+      }
+    })
+  }, [dataLoaded, banners, resolveImage])
 
   // Observa mudanças de login + status admin
   useEffect(() => {
@@ -409,7 +463,7 @@ export function AppProvider({ children }) {
     <AppContext.Provider value={{
       services, products, banners, highlights, feedPosts, procedures, links, waTemplates,
       appointments, blocks, waitlist, gallery, profile, cart, workingHours, availableHours, isAdmin,
-      currentUser, authLoading, firebaseOn,
+      currentUser, authLoading, firebaseOn, dataLoaded,
       clients, finance,
       addAppointment, cancelAppointment, completeAppointment, deleteAppointment, updateAppointmentStatus,
       isSlotTaken,

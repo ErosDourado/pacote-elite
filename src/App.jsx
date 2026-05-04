@@ -4,6 +4,7 @@ import { AppProvider, useApp } from './context/AppContext'
 import { brandConfig } from './brandConfig'
 import BottomNav from './components/BottomNav'
 import TopBar from './components/TopBar'
+import Splash from './components/Splash'
 // Páginas críticas — carregadas no bundle inicial
 import Home from './pages/Home'
 import Scheduling from './pages/Scheduling'
@@ -76,7 +77,7 @@ function PageLoader() {
 
 // ── Roteador interno (consome o AppContext pra guard de admin) ──
 function AppRouter() {
-  const { isAdmin, authLoading, firebaseOn } = useApp()
+  const { isAdmin, authLoading, firebaseOn, dataLoaded } = useApp()
   const [activePage, setActivePage] = useState(() => {
     const saved = sessionStorage.getItem('activePage')
     return (saved && PAGES[saved]) ? saved : 'home'
@@ -164,6 +165,11 @@ function AppRouter() {
       {showChrome && (
         <BottomNav activePage={activePage} onNavigate={navigate} />
       )}
+
+      {/* Splash Screen */}
+      <AnimatePresence>
+        {!dataLoaded && <Splash key="splash" />}
+      </AnimatePresence>
     </div>
   )
 }
