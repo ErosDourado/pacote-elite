@@ -39,10 +39,10 @@ const fmtPhone = p =>
 /** Aplica template de WA substituindo placeholders */
 function renderTemplate(template, appt) {
   return (template || '')
-    .replace(/{clientName}/g, appt.clientName || '')
-    .replace(/{service}/g, appt.service?.name || '')
-    .replace(/{date}/g, fmtDateLong(appt.date))
-    .replace(/{time}/g, appt.time || '')
+    .replace(/{nome}|{clientName}/gi, appt.clientName || '')
+    .replace(/{servico}|{service}/gi, appt.service?.name || '')
+    .replace(/{data}|{date}/gi, fmtDateLong(appt.date))
+    .replace(/{hora}|{time}/gi, appt.time || '')
 }
 
 function buildWaLink(appt, templates) {
@@ -391,14 +391,10 @@ function WaitlistListModal({ open, waitlist, waTemplates, onClose, onMarkNotifie
       ? new Date(entry.preferredDate + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })
       : ''
     const msg = (tpl || 'Olá {nome}! Sobre sua vaga de {servico} no dia {data} às {hora}.')
-      .replace(/{nome}/g, entry.clientName || '')
-      .replace(/{servico}/g, entry.serviceName || '')
-      .replace(/{data}/g, fmtDate)
-      .replace(/{hora}/g, entry.preferredTime || '')
-      .replace(/{clientName}/g, entry.clientName || '')
-      .replace(/{service}/g, entry.serviceName || '')
-      .replace(/{date}/g, fmtDate)
-      .replace(/{time}/g, entry.preferredTime || '')
+      .replace(/{nome}|{clientName}/gi, entry.clientName || '')
+      .replace(/{servico}|{service}/gi, entry.serviceName || '')
+      .replace(/{data}|{date}/gi, fmtDate)
+      .replace(/{hora}|{time}/gi, entry.preferredTime || '')
     return `https://wa.me/55${phone}?text=${encodeURIComponent(msg)}`
   }
 
@@ -553,15 +549,10 @@ function WaitlistAdminModal({ data, waTemplates, onClose, onMarkNotified }) {
     const tpl = waTemplates?.waitlist || ''
     const fmtDate = new Date(slot.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })
     const msg = (tpl || 'Olá {nome}! Abriu uma vaga para {servico} no dia {data} às {hora}. Tem interesse?')
-      .replace(/{nome}/g, cand.clientName || '')
-      .replace(/{servico}/g, slot.service?.name || '')
-      .replace(/{data}/g, fmtDate)
-      .replace(/{hora}/g, slot.time || '')
-      // compat com placeholders antigos
-      .replace(/{clientName}/g, cand.clientName || '')
-      .replace(/{service}/g, slot.service?.name || '')
-      .replace(/{date}/g, fmtDate)
-      .replace(/{time}/g, slot.time || '')
+      .replace(/{nome}|{clientName}/gi, cand.clientName || '')
+      .replace(/{servico}|{service}/gi, slot.service?.name || '')
+      .replace(/{data}|{date}/gi, fmtDate)
+      .replace(/{hora}|{time}/gi, slot.time || '')
     return `https://wa.me/55${phone}?text=${encodeURIComponent(msg)}`
   }
 

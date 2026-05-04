@@ -80,10 +80,10 @@ export function renderTemplate(template, appt) {
     ? new Date(appt.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })
     : ''
   return (template || '')
-    .replace(/{nome}/g,    appt.clientName || '')
-    .replace(/{servico}/g, appt.service?.name || '')
-    .replace(/{data}/g,    fmtDate)
-    .replace(/{hora}/g,    appt.time || '')
+    .replace(/{nome}|{clientName}/gi,    appt.clientName || '')
+    .replace(/{servico}|{service}/gi, appt.service?.name || '')
+    .replace(/{data}|{date}/gi,    fmtDate)
+    .replace(/{hora}|{time}/gi,    appt.time || '')
 }
 
 /** Gera link wa.me com a mensagem do template renderizada.
