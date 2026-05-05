@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, Component } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Home, Calendar, Scissors, Users, CalendarOff, ShoppingBag, MessageSquare, Bell } from 'lucide-react'
 import { brandConfig } from '../../brandConfig'
@@ -21,6 +21,30 @@ const TABS = [
   { id: 'home',          label: 'Home',       Icon: Home,           Component: HomeAdmin         },
   { id: 'notifications', label: 'Notif.',     Icon: Bell,           Component: NotificationsAdmin },
 ]
+
+class TabErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null } }
+  static getDerivedStateFromError(error) { return { error } }
+  componentDidCatch(error, info) { console.error('[AdminTab]', error, info) }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 px-8 text-center gap-3">
+          <p className="text-[15px] font-semibold text-label">Erro nesta seção</p>
+          <p className="text-[12px] text-label-2">Tente trocar de aba e voltar.</p>
+          <button
+            onClick={() => this.setState({ error: null })}
+            className="mt-2 px-5 py-2 rounded-xl text-[12px] font-bold uppercase tracking-wider text-white"
+            style={{ background: 'var(--color-accent)' }}
+          >
+            Tentar novamente
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 export default function AdminLayout({ onNavigate }) {
   const [activeTab, setActiveTab] = useState('appointments')
@@ -87,7 +111,9 @@ export default function AdminLayout({ onNavigate }) {
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
           >
-            <ActiveComponent />
+            <TabErrorBoundary key={activeTab}>
+              <ActiveComponent />
+            </TabErrorBoundary>
           </motion.div>
         </AnimatePresence>
       </div>

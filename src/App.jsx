@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, lazy, Suspense, Component } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AppProvider, useApp } from './context/AppContext'
 import { brandConfig } from './brandConfig'
@@ -56,6 +56,30 @@ const iosTransition = {
   initial: { opacity: 0, y: 14, scale: 0.99 },
   animate: { opacity: 1, y: 0,  scale: 1,    transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] } },
   exit:    { opacity: 0, y: -8, scale: 0.99,  transition: { duration: 0.2 } },
+}
+
+// Error Boundary — captura erros de render e evita tela branca
+class ErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null } }
+  static getDerivedStateFromError(error) { return { error } }
+  componentDidCatch(error, info) { console.error('[ErrorBoundary]', error, info) }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] px-8 text-center gap-4">
+          <p className="text-[17px] font-semibold text-label">Algo deu errado</p>
+          <p className="text-[13px] text-label-2">Tente recarregar a página.</p>
+          <button
+            onClick={() => this.setState({ error: null })}
+            className="btn-fill"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
 }
 
 // Spinner exibido enquanto chunk lazy carrega
@@ -155,9 +179,11 @@ function AppRouter() {
             exit="exit"
             className={showChrome ? 'pb-32' : ''}
           >
-            <Suspense fallback={<PageLoader />}>
-              <Page onNavigate={navigate} pageState={pageState} />
-            </Suspense>
+            <ErrorBoundary key={activePage}>
+              <Suspense fallback={<PageLoader />}>
+                <Page onNavigate={navigate} pageState={pageState} />
+              </Suspense>
+            </ErrorBoundary>
           </motion.div>
         </AnimatePresence>
       </main>
