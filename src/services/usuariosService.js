@@ -28,7 +28,7 @@ export async function updateUsuarioVip(phone, isVip) {
   const normalizedPhone = (phone || '').replace(/\D/g, '')
   if (!normalizedPhone) return
   const ref = doc(db, COLLECTION, normalizedPhone)
-  await setDoc(ref, { isVip, updatedAt: serverTimestamp() }, { merge: true })
+  await setDoc(ref, { phone: normalizedPhone, isVip, updatedAt: serverTimestamp() }, { merge: true })
 }
 
 /** Subscribe em tempo real na coleção de usuários. */
@@ -38,7 +38,8 @@ export function subscribeUsuarios(onData, onError) {
   return onSnapshot(
     colRef,
     snap => {
-      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      // phone: d.id garante que o campo phone sempre existe (ID do doc = telefone normalizado)
+      const docs = snap.docs.map(d => ({ phone: d.id, ...d.data() }))
       docs.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'))
       onData(docs)
     },
