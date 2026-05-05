@@ -501,8 +501,8 @@ function VipRibbon({ name }) {
 
 // ── Página Home ───────────────────────────────────────────────────
 export default function Home({ onNavigate }) {
-  const { banners, feedPosts, procedures, links, gallery, profile, isVipClient, resolveImage } = useApp()
-  const isVip = profile.phone ? isVipClient(profile.phone) : false
+  const { banners, feedPosts, procedures, links, gallery, amIVip, resolveImage } = useApp()
+  const isVip = amIVip
   const [feedModal, setFeedModal] = useState(null)
 
   // Filtra banners VIP para clientes não-VIP

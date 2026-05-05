@@ -400,6 +400,16 @@ export function AppProvider({ children }) {
     return (profile.vipPhones || []).includes(phone)
   }
 
+  // VIP do usuário atual — verifica por telefone E por email (cobre login via Google sem telefone)
+  const amIVip = useMemo(() => {
+    if (!firebaseOn) return (profile.vipPhones || []).includes(profile.phone)
+    const norm = normalizePhone(profile.phone)
+    return usuarios.some(u =>
+      (norm && u.phone === norm && u.isVip) ||
+      (profile.email && u.email === profile.email && u.isVip)
+    )
+  }, [usuarios, profile, firebaseOn])
+
   const toggleVip = async (phone) => {
     const norm = normalizePhone(phone)
     if (firebaseOn && norm) {
@@ -531,7 +541,7 @@ export function AppProvider({ children }) {
       addProcedure, removeProcedure, updateProcedure,
       addLink, removeLink, updateLink,
       updateWaTemplate,
-      isVipClient, toggleVip,
+      isVipClient, toggleVip, amIVip,
       addBlock, removeBlock, updateBlock,
       setProfile,
       addToCart, removeFromCart, updateCartQty, clearCart,

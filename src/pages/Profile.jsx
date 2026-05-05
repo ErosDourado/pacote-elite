@@ -17,8 +17,8 @@ const PICKUP_LABEL = {
 }
 
 export default function Profile({ onNavigate }) {
-  const { profile, setProfile, appointments, products, cart, removeFromCart, updateCartQty, clearCart, isVipClient } = useApp()
-  const isVip = profile.phone ? isVipClient(profile.phone) : false
+  const { profile, setProfile, appointments, products, cart, removeFromCart, updateCartQty, clearCart, amIVip } = useApp()
+  const isVip = amIVip
 
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({
