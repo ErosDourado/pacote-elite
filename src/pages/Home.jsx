@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  ChevronRight, MapPin, ExternalLink, X,
+  ChevronRight, MapPin, ExternalLink, X, Crown,
   Instagram, Facebook, Music2, MessageCircle, Globe, Mail, Phone, Youtube,
   BookOpen, GraduationCap, Megaphone,
 } from 'lucide-react'
@@ -455,6 +455,50 @@ function EnvironmentSection({ gallery, resolveImage }) {
   )
 }
 
+// ── Fita VIP — aparece só para clientes VIP ───────────────────────
+function VipRibbon({ name }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+      className="mx-4 mb-3 relative overflow-hidden rounded-2xl flex items-center gap-3 px-4 py-3"
+      style={{
+        background: 'linear-gradient(105deg, #BF953F 0%, #FCF6BA 40%, #D4AF37 70%, #AA771C 100%)',
+        boxShadow: '0 4px 20px rgba(212,175,55,0.35)',
+      }}
+    >
+      {/* Brilho diagonal */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'linear-gradient(115deg, rgba(255,255,255,0.35) 0%, transparent 50%)',
+        }}
+      />
+      <div
+        className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+        style={{ background: 'rgba(255,255,255,0.25)' }}
+      >
+        <Crown size={16} strokeWidth={2} style={{ color: '#7A5A00' }} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'rgba(90,60,0,0.7)' }}>
+          Acesso exclusivo
+        </p>
+        <p className="text-[13px] font-bold leading-tight" style={{ color: '#3A2800' }}>
+          {name ? `Bem-vinda, ${name.split(' ')[0]}! ✨` : 'Você é cliente VIP ✨'}
+        </p>
+      </div>
+      <span
+        className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full flex-shrink-0"
+        style={{ background: 'rgba(255,255,255,0.3)', color: '#5A3800' }}
+      >
+        VIP
+      </span>
+    </motion.div>
+  )
+}
+
 // ── Página Home ───────────────────────────────────────────────────
 export default function Home({ onNavigate }) {
   const { banners, feedPosts, procedures, links, gallery, profile, isVipClient, resolveImage } = useApp()
@@ -478,6 +522,9 @@ export default function Home({ onNavigate }) {
   return (
     <div>
       <div className="pt-4" />
+
+      {/* Fita VIP — só para clientes VIP */}
+      {isVip && <VipRibbon name={profile.name} />}
 
       {/* Banner com swipe + CTA dinâmico (filtra VIP) */}
       <HeroBanner banners={visibleBanners} onCtaClick={handleBannerCta} resolveImage={resolveImage} />
