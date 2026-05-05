@@ -404,7 +404,20 @@ export function AppProvider({ children }) {
     const norm = normalizePhone(phone)
     if (firebaseOn && norm) {
       const current = usuarios.find(u => u.phone === norm)
-      await updateUsuarioVip(norm, !current?.isVip)
+      const nextVip = !current?.isVip
+      // Atualização otimista: reflete imediatamente no estado local
+      setUsuarios(prev => {
+        const exists = prev.some(u => u.phone === norm)
+        if (exists) return prev.map(u => u.phone === norm ? { ...u, isVip: nextVip } : u)
+        return [...prev, { id: norm, phone: norm, name: current?.name || '', isVip: nextVip }]
+      })
+      try {
+        await updateUsuarioVip(norm, nextVip)
+      } catch (e) {
+        console.error('[toggleVip]', e)
+        // Reverte em caso de erro
+        setUsuarios(prev => prev.map(u => u.phone === norm ? { ...u, isVip: !nextVip } : u))
+      }
     } else {
       setProfileState(prev => {
         const list = prev.vipPhones || []

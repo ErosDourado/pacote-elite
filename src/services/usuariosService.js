@@ -1,6 +1,6 @@
 import {
   collection, doc,
-  setDoc, query, orderBy, onSnapshot,
+  setDoc, onSnapshot,
   serverTimestamp,
 } from 'firebase/firestore'
 import { db } from '../firebase'
@@ -34,10 +34,14 @@ export async function updateUsuarioVip(phone, isVip) {
 /** Subscribe em tempo real na coleção de usuários. */
 export function subscribeUsuarios(onData, onError) {
   if (!colRef) { onData([]); return () => {} }
-  const q = query(colRef, orderBy('name', 'asc'))
+  // Sem orderBy para não depender de índice composto
   return onSnapshot(
-    q,
-    snap => onData(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    colRef,
+    snap => {
+      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      docs.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'))
+      onData(docs)
+    },
     err => {
       console.error('[usuariosService] subscribe error:', err)
       onError?.(err)
