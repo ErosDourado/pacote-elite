@@ -174,7 +174,12 @@ export function AppProvider({ children }) {
       setCurrentUser(user)
       if (unsubAdmin) { unsubAdmin(); unsubAdmin = null }
       if (user?.email) {
-        setProfileState(prev => ({ ...prev, email: user.email, name: prev.name || user.displayName || '' }))
+        setProfileState(prev => {
+          const next = { ...prev, email: user.email, name: prev.name || user.displayName || '' }
+          // Garante que o admin tenha entrada no Firestore com email (mesmo sem telefone)
+          upsertUsuario({ name: next.name, email: user.email, phone: next.phone || '' })
+          return next
+        })
         unsubAdmin = subscribeAdminStatus(user.email, (admin) => {
           setIsAdmin(admin)
           setAuthLoading(false)
@@ -422,7 +427,8 @@ export function AppProvider({ children }) {
         return [...prev, { id: norm, phone: norm, name: current?.name || '', isVip: nextVip }]
       })
       try {
-        await updateUsuarioVip(norm, nextVip)
+        const email = current?.email || ''
+        await updateUsuarioVip(norm, nextVip, email)
       } catch (e) {
         console.error('[toggleVip]', e)
         // Reverte em caso de erro

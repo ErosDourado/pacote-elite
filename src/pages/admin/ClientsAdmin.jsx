@@ -221,7 +221,7 @@ export default function ClientsAdmin() {
             const vip = isVipClient(client.phone)
             return (
               <motion.button
-                key={client.phone}
+                key={client.phone || client.email || i}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setSelected(client)}
                 className="w-full text-left flex items-center gap-3 px-4 py-3.5"
@@ -230,7 +230,7 @@ export default function ClientsAdmin() {
                 <div className="relative flex-shrink-0">
                   <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-[15px]"
                     style={{ background: 'color-mix(in srgb, var(--color-accent) 14%, var(--color-bg))', color: 'var(--color-accent)' }}>
-                    {initials}
+                    {initials || '?'}
                   </div>
                   {vip && (
                     <div
@@ -242,7 +242,7 @@ export default function ClientsAdmin() {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[15px] font-medium text-label">{client.name}</p>
+                  <p className="text-[15px] font-medium text-label">{client.name || client.phone || client.email || 'Sem nome'}</p>
                   <p className="text-[12px] text-label-2">
                     {client.appointments.length > 0
                       ? `${client.appointments.length} visita${client.appointments.length!==1?'s':''} · última em ${fmt(client.lastVisit)}`

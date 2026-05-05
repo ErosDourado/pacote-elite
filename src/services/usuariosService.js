@@ -8,27 +8,28 @@ import { db } from '../firebase'
 const COLLECTION = 'usuarios'
 const colRef = db ? collection(db, COLLECTION) : null
 
-/** Salva/atualiza um usuário usando o telefone como ID do documento. */
+/** Salva/atualiza um usuário. Usa telefone como ID; se não tiver, usa email. */
 export async function upsertUsuario(data) {
   if (!colRef || !db) return
   const phone = (data.phone || '').replace(/\D/g, '')
-  if (!phone) return
-  const ref = doc(db, COLLECTION, phone)
-  await setDoc(ref, {
-    name:      data.name  || '',
-    phone,
-    email:     data.email || '',
-    updatedAt: serverTimestamp(),
-  }, { merge: true })
+  const email = (data.email || '').trim()
+  const docId = phone || email
+  if (!docId) return
+  const ref = doc(db, COLLECTION, docId)
+  const payload = { name: data.name || '', email, updatedAt: serverTimestamp() }
+  if (phone) payload.phone = phone
+  await setDoc(ref, payload, { merge: true })
 }
 
-/** Atualiza apenas o campo isVip de um usuário. */
-export async function updateUsuarioVip(phone, isVip) {
+/** Atualiza isVip de um usuário, preservando email se fornecido. */
+export async function updateUsuarioVip(phone, isVip, email = '') {
   if (!db) return
   const normalizedPhone = (phone || '').replace(/\D/g, '')
   if (!normalizedPhone) return
   const ref = doc(db, COLLECTION, normalizedPhone)
-  await setDoc(ref, { phone: normalizedPhone, isVip, updatedAt: serverTimestamp() }, { merge: true })
+  const payload = { phone: normalizedPhone, isVip, updatedAt: serverTimestamp() }
+  if (email) payload.email = email
+  await setDoc(ref, payload, { merge: true })
 }
 
 /** Subscribe em tempo real na coleção de usuários. */
