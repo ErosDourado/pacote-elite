@@ -2,7 +2,7 @@ import { useState } from 'react'
 import {
   Plus, Pencil, Trash2, Save, Layers, Sparkles, ChevronDown, Link as LinkIcon,
   Instagram, Facebook, Music2, MessageCircle, MapPin, Globe, Mail, Phone, Youtube,
-  BookOpen, GraduationCap, Megaphone, Camera, Image as ImageIcon,
+  BookOpen, GraduationCap, Megaphone, Camera, Image as ImageIcon, Smartphone, Monitor,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '../../context/AppContext'
@@ -391,14 +391,54 @@ function BannersSection() {
                     onToggle={() => setOpenId(openId === b.id ? null : b.id)}
                     onDelete={() => window.confirm('Remover banner?') && removeBanner(b.id)}
                   >
-                    <ImageUploader
-                      value={b.url}
-                      position={b.objectPosition}
-                      onChangeImage={v => updateBanner(b.id, { url: v })}
-                      onChangePosition={v => updateBanner(b.id, { objectPosition: v })}
-                      height={180}
-                      allowUrl
-                    />
+                    {/* Imagem Mobile */}
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <Smartphone size={12} strokeWidth={2} className="text-accent" />
+                          <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(60,60,67,0.5)' }}>Imagem Mobile *</span>
+                        </div>
+                        <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'color-mix(in srgb, var(--color-accent) 10%, transparent)', color: 'var(--color-accent)' }}>
+                          Canva: 1080 × 720 px
+                        </span>
+                      </div>
+                      <ImageUploader
+                        value={b.url}
+                        position={b.objectPosition}
+                        onChangeImage={v => updateBanner(b.id, { url: v })}
+                        onChangePosition={v => updateBanner(b.id, { objectPosition: v })}
+                        height={160}
+                        allowUrl
+                      />
+                    </div>
+
+                    {/* Imagem Desktop */}
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <Monitor size={12} strokeWidth={2} className="text-label-2" />
+                          <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(60,60,67,0.5)' }}>Imagem Desktop</span>
+                          <span className="text-[9px] text-label-3">(opcional)</span>
+                        </div>
+                        <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(120,120,128,0.10)', color: 'rgba(60,60,67,0.55)' }}>
+                          Canva: 1500 × 500 px
+                        </span>
+                      </div>
+                      <ImageUploader
+                        value={b.urlDesktop}
+                        position={b.objectPositionDesktop}
+                        onChangeImage={v => updateBanner(b.id, { urlDesktop: v })}
+                        onChangePosition={v => updateBanner(b.id, { objectPositionDesktop: v })}
+                        height={100}
+                        allowUrl
+                      />
+                      {!b.urlDesktop && (
+                        <p className="text-[10px]" style={{ color: 'rgba(60,60,67,0.4)' }}>
+                          Se não adicionar, a imagem mobile será usada no desktop também.
+                        </p>
+                      )}
+                    </div>
+
                     <InputField
                       label="Título"
                       value={b.title}
