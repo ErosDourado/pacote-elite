@@ -12,7 +12,7 @@ import { subscribeGallery, createGalleryPhoto, updateGalleryPhoto as fsUpdateGal
 import { subscribeAppointments, createAppointment, updateAppointmentStatus as fsUpdateApptStatus, deleteAppointment as fsDeleteAppt } from '../services/appointmentsService'
 import { subscribeWaitlist, createWaitlistEntry, deleteWaitlistEntry, markNotified } from '../services/waitlistService'
 import { subscribeLinks, createLink, updateLink as fsUpdateLink, deleteLink } from '../services/linksService'
-import { upsertUsuario, subscribeUsuarios } from '../services/usuariosService'
+import { upsertUsuario, updateUsuarioVip, subscribeUsuarios } from '../services/usuariosService'
 import { isFirebaseConfigured } from '../firebase'
 import { notifyOwner } from '../services/notificationsService'
 import {
@@ -389,13 +389,29 @@ export function AppProvider({ children }) {
   const updateWaTemplate = (status, msg) => setWaTemplates(prev => ({ ...prev, [status]: msg }))
 
   // ── VIP do cliente ────────────────────────────────────────────
-  const isVipClient = (phone) => (profile.vipPhones || []).includes(phone)
-  const toggleVip = (phone) => {
-    setProfileState(prev => {
-      const list = prev.vipPhones || []
-      const next = list.includes(phone) ? list.filter(p => p !== phone) : [...list, phone]
-      return { ...prev, vipPhones: next }
-    })
+  const normalizePhone = (p) => (p || '').replace(/\D/g, '')
+
+  // Lê VIP do Firestore (usuarios) quando online, fallback pra localStorage
+  const isVipClient = (phone) => {
+    const norm = normalizePhone(phone)
+    if (firebaseOn && norm) {
+      return usuarios.some(u => u.phone === norm && u.isVip)
+    }
+    return (profile.vipPhones || []).includes(phone)
+  }
+
+  const toggleVip = async (phone) => {
+    const norm = normalizePhone(phone)
+    if (firebaseOn && norm) {
+      const current = usuarios.find(u => u.phone === norm)
+      await updateUsuarioVip(norm, !current?.isVip)
+    } else {
+      setProfileState(prev => {
+        const list = prev.vipPhones || []
+        const next = list.includes(phone) ? list.filter(p => p !== phone) : [...list, phone]
+        return { ...prev, vipPhones: next }
+      })
+    }
   }
 
   // ── Disponibilidade ───────────────────────────────────────────

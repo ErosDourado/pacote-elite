@@ -22,6 +22,15 @@ export async function upsertUsuario(data) {
   }, { merge: true })
 }
 
+/** Atualiza apenas o campo isVip de um usuário. */
+export async function updateUsuarioVip(phone, isVip) {
+  if (!db) return
+  const normalizedPhone = (phone || '').replace(/\D/g, '')
+  if (!normalizedPhone) return
+  const ref = doc(db, COLLECTION, normalizedPhone)
+  await setDoc(ref, { isVip, updatedAt: serverTimestamp() }, { merge: true })
+}
+
 /** Subscribe em tempo real na coleção de usuários. */
 export function subscribeUsuarios(onData, onError) {
   if (!colRef) { onData([]); return () => {} }
