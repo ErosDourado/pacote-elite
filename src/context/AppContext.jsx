@@ -463,27 +463,31 @@ export function AppProvider({ children }) {
   // ── Clientes (usuários registrados + histórico de agendamentos) ─
   const clients = useMemo(() => {
     const map = {}
+    const norm = (p) => (p || '').replace(/\D/g, '')
 
-    // Base: todos que criaram conta no app
+    // Base: todos que criaram conta no app (telefone já normalizado no ID do doc)
     usuarios.forEach(u => {
       const phone = u.phone || ''
       if (!phone) return
       map[phone] = { name: u.name || '', phone, email: u.email || '', appointments: [], totalSpent: 0, lastVisit: '' }
     })
 
-    // Mescla agendamentos (adiciona quem agendou sem ter criado conta)
+    // Mescla agendamentos — normaliza o telefone para bater com usuarios
     appointments.forEach(a => {
-      const key = a.clientPhone
+      const raw = a.clientPhone || ''
+      const key = norm(raw) || raw   // normaliza; se ficar vazio usa o raw
+      if (!key) return
       if (!map[key]) {
-        map[key] = { name: a.clientName, phone: key, email: '', appointments: [], totalSpent: 0, lastVisit: '' }
+        map[key] = { name: a.clientName || '', phone: key, email: '', appointments: [], totalSpent: 0, lastVisit: '' }
       }
+      // Se o entry veio do usuarios sem nome, preenche pelo agendamento
+      if (!map[key].name && a.clientName) map[key].name = a.clientName
       map[key].appointments.push(a)
       if (a.paymentStatus === 'paid') map[key].totalSpent += (a.service?.price ?? 0)
       if (a.date > map[key].lastVisit) map[key].lastVisit = a.date
     })
 
     return Object.values(map).sort((a, b) => {
-      // Quem tem visita aparece primeiro, ordenado por data; quem não tem vai ao final
       if (b.lastVisit && !a.lastVisit) return 1
       if (a.lastVisit && !b.lastVisit) return -1
       return b.lastVisit.localeCompare(a.lastVisit)
