@@ -181,8 +181,8 @@ export default function ClientsAdmin() {
     clients
       .filter(c => !hiddenPhones.has(c.phone))
       .filter(c =>
-        c.name.toLowerCase().includes(query.toLowerCase()) ||
-        c.phone.includes(query)
+        (c.name || '').toLowerCase().includes(query.toLowerCase()) ||
+        (c.phone || '').includes(query)
       ), [clients, query, hiddenPhones])
 
   const fmt = iso => new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })

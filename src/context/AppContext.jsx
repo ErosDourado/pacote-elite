@@ -466,7 +466,9 @@ export function AppProvider({ children }) {
 
     // Base: todos que criaram conta no app
     usuarios.forEach(u => {
-      map[u.phone] = { name: u.name, phone: u.phone, email: u.email || '', appointments: [], totalSpent: 0, lastVisit: '' }
+      const phone = u.phone || ''
+      if (!phone) return
+      map[phone] = { name: u.name || '', phone, email: u.email || '', appointments: [], totalSpent: 0, lastVisit: '' }
     })
 
     // Mescla agendamentos (adiciona quem agendou sem ter criado conta)
