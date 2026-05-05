@@ -19,13 +19,15 @@ function HeroBanner({ banners, onCtaClick, resolveImage }) {
   const [idx, setIdx] = useState(0)
   const containerRef = useRef(null)
   const [width, setWidth] = useState(0)
+  const [height, setHeight] = useState(window.innerWidth >= 768 ? 400 : 240)
   const [imgErrors, setImgErrors] = useState({})
   const total = banners.length
 
-  // Pega largura do container e atualiza em resize
+  // Pega largura/altura do container e atualiza em resize
   useEffect(() => {
     const update = () => {
       if (containerRef.current) setWidth(containerRef.current.offsetWidth)
+      setHeight(window.innerWidth >= 768 ? 400 : 240)
     }
     update()
     window.addEventListener('resize', update)
@@ -79,8 +81,8 @@ function HeroBanner({ banners, onCtaClick, resolveImage }) {
   return (
     <div
       ref={containerRef}
-      className="mx-4 relative"
-      style={{ borderRadius: 24, overflow: 'hidden', height: 240 }}
+      className="mx-4 md:mx-6 relative"
+      style={{ borderRadius: 24, overflow: 'hidden', height }}
     >
       <motion.div
         className="flex h-full"
@@ -103,13 +105,19 @@ function HeroBanner({ banners, onCtaClick, resolveImage }) {
                 style={{ background: 'color-mix(in srgb, var(--color-accent) 18%, var(--color-bg))' }}
               />
             ) : (
-              <img
-                src={resolveImage(banner.url)}
-                alt={banner.title}
-                draggable={false}
-                className="w-full h-full object-cover pointer-events-none"
-                onError={() => setImgErrors(prev => ({ ...prev, [banner.id]: true }))}
-              />
+              <picture className="w-full h-full">
+                {banner.urlDesktop && (
+                  <source media="(min-width: 768px)" srcSet={resolveImage(banner.urlDesktop)} />
+                )}
+                <img
+                  src={resolveImage(banner.url)}
+                  alt={banner.title}
+                  draggable={false}
+                  className="w-full h-full object-cover pointer-events-none"
+                  style={{ objectPosition: banner.objectPosition || 'center' }}
+                  onError={() => setImgErrors(prev => ({ ...prev, [banner.id]: true }))}
+                />
+              </picture>
             )}
             <div
               className="absolute inset-0"

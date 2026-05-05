@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, X, Save, Layers } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, Save, Layers, Smartphone, Monitor } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '../../context/AppContext'
+import ImageUploader from '../../components/ImageUploader'
 
-const BLANK = { url: '', title: '', subtitle: '' }
+const BLANK = { url: '', urlDesktop: '', title: '', subtitle: '' }
 
 function BannerModal({ initial, onSave, onClose }) {
   const [form, setForm] = useState({ ...BLANK, ...initial })
@@ -32,32 +33,69 @@ function BannerModal({ initial, onSave, onClose }) {
             </button>
           </div>
 
-          <div className="px-5 flex flex-col gap-4 pb-6">
-            {/* Preview */}
-            {form.url ? (
-              <div className="relative rounded-2xl overflow-hidden" style={{ height: 160 }}>
-                <img src={form.url} alt="preview" className="w-full h-full object-cover"
-                  onError={e => e.target.style.display = 'none'} />
-              </div>
-            ) : (
-              <div className="h-32 rounded-2xl flex flex-col items-center justify-center gap-2 border-2 border-dashed"
-                style={{ borderColor: 'rgba(120,120,128,0.2)' }}>
-                <Layers size={24} strokeWidth={1} className="text-label-3" />
-                <p className="text-[12px] text-label-2">Cole a URL da imagem abaixo</p>
-              </div>
-            )}
+          <div className="px-5 flex flex-col gap-5 pb-6">
 
-            {[
-              { k: 'url',      l: 'URL da Imagem *', ph: 'https://...' },
-              { k: 'title',    l: 'Título *',         ph: 'Ex: Realce sua beleza natural' },
-              { k: 'subtitle', l: 'Subtítulo',         ph: 'Texto complementar do banner' },
-            ].map(fi => (
-              <label key={fi.k} className="flex flex-col gap-1.5">
-                <span className="text-[12px] font-medium text-label-2 uppercase tracking-wide">{fi.l}</span>
-                <input className="ios-input" placeholder={fi.ph} value={form[fi.k]}
-                  onChange={e => f(fi.k, e.target.value)} />
-              </label>
-            ))}
+            {/* Imagem Mobile */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Smartphone size={13} strokeWidth={2} className="text-accent" />
+                  <span className="text-[12px] font-semibold text-label uppercase tracking-wide">Imagem Mobile *</span>
+                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+                  style={{ background: 'color-mix(in srgb, var(--color-accent) 10%, transparent)', color: 'var(--color-accent)' }}>
+                  Canva: 1080 × 720 px
+                </span>
+              </div>
+              <ImageUploader
+                label=""
+                value={form.url}
+                position={form.objectPosition}
+                onChangeImage={v => f('url', v)}
+                onChangePosition={v => f('objectPosition', v)}
+                height={140}
+              />
+            </div>
+
+            {/* Imagem Desktop */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Monitor size={13} strokeWidth={2} className="text-label-2" />
+                  <span className="text-[12px] font-semibold text-label uppercase tracking-wide">Imagem Desktop</span>
+                  <span className="text-[10px] text-label-3">(opcional)</span>
+                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+                  style={{ background: 'rgba(120,120,128,0.10)', color: 'rgba(60,60,67,0.6)' }}>
+                  Canva: 1500 × 500 px
+                </span>
+              </div>
+              <ImageUploader
+                label=""
+                value={form.urlDesktop}
+                position={form.objectPositionDesktop}
+                onChangeImage={v => f('urlDesktop', v)}
+                onChangePosition={v => f('objectPositionDesktop', v)}
+                height={100}
+              />
+              {!form.urlDesktop && (
+                <p className="text-[11px] text-label-3">
+                  Se não adicionar, a imagem mobile será usada no desktop também.
+                </p>
+              )}
+            </div>
+
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[12px] font-medium text-label-2 uppercase tracking-wide">Título *</span>
+              <input className="ios-input" placeholder="Ex: Realce sua beleza natural"
+                value={form.title} onChange={e => f('title', e.target.value)} />
+            </label>
+
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[12px] font-medium text-label-2 uppercase tracking-wide">Subtítulo</span>
+              <input className="ios-input" placeholder="Texto complementar do banner"
+                value={form.subtitle} onChange={e => f('subtitle', e.target.value)} />
+            </label>
 
             <button
               onClick={() => canSave && onSave(form)}
@@ -75,8 +113,8 @@ function BannerModal({ initial, onSave, onClose }) {
 }
 
 export default function BannersAdmin() {
-  const { banners, addBanner, removeBanner, updateBanner } = useApp()
-  const [modal, setModal] = useState(null) // null | 'new' | banner object
+  const { banners, addBanner, removeBanner, updateBanner, resolveImage } = useApp()
+  const [modal, setModal] = useState(null)
 
   const handleSave = (data) => {
     if (modal === 'new') addBanner(data)
@@ -103,7 +141,8 @@ export default function BannersAdmin() {
           {banners.map(banner => (
             <div key={banner.id} className="ios-card overflow-hidden">
               {banner.url && (
-                <img src={banner.url} alt={banner.title} className="w-full object-cover" style={{ height: 140 }} />
+                <img src={resolveImage(banner.url)} alt={banner.title}
+                  className="w-full object-cover" style={{ height: 120 }} />
               )}
               <div className="p-4 flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
@@ -111,6 +150,14 @@ export default function BannersAdmin() {
                   {banner.subtitle && (
                     <p className="text-[13px] text-label-2 mt-0.5 line-clamp-1">{banner.subtitle}</p>
                   )}
+                  <div className="flex gap-2 mt-1.5">
+                    <span className="text-[10px] flex items-center gap-1 text-label-3">
+                      <Smartphone size={9} /> Mobile {banner.url ? '✓' : '—'}
+                    </span>
+                    <span className="text-[10px] flex items-center gap-1 text-label-3">
+                      <Monitor size={9} /> Desktop {banner.urlDesktop ? '✓' : '(usa mobile)'}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex gap-1.5 flex-shrink-0">
                   <motion.button whileTap={{ scale: 0.88 }}
