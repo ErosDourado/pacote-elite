@@ -12,6 +12,7 @@ import { subscribeGallery, createGalleryPhoto, updateGalleryPhoto as fsUpdateGal
 import { subscribeAppointments, createAppointment, updateAppointmentStatus as fsUpdateApptStatus, deleteAppointment as fsDeleteAppt } from '../services/appointmentsService'
 import { subscribeWaitlist, createWaitlistEntry, deleteWaitlistEntry, markNotified } from '../services/waitlistService'
 import { subscribeLinks, createLink, updateLink as fsUpdateLink, deleteLink } from '../services/linksService'
+import { upsertUsuario, subscribeUsuarios } from '../services/usuariosService'
 import { isFirebaseConfigured } from '../firebase'
 import { notifyOwner } from '../services/notificationsService'
 import {
@@ -54,6 +55,7 @@ export function AppProvider({ children }) {
   const [appointments, setAppointments] = useState(INITIAL_APPOINTMENTS)
   const [waitlist,     setWaitlist]     = useState(INITIAL_WAITLIST)
   const [links,        setLinks]        = useState(INITIAL_LINKS)
+  const [usuarios,     setUsuarios]     = useState([])
 
   // ── Estado — local (localStorage, por dispositivo) ─────────────
   const [highlights,   setHighlights]   = useState(() => load('hl',     INITIAL_HIGHLIGHTS))
@@ -147,6 +149,7 @@ export function AppProvider({ children }) {
 
       subscribeAppointments(setAppointments, e => console.error('[ctx] appts:', e)),
       subscribeWaitlist(setWaitlist,     e => console.error('[ctx] waitlist:', e)),
+      subscribeUsuarios(setUsuarios,     e => console.error('[ctx] usuarios:', e)),
     ]
     return () => unsubs.forEach(u => u())
   }, [firebaseOn, resolveImage])
@@ -413,7 +416,10 @@ export function AppProvider({ children }) {
   const clearCart       = ()        => setCart([])
 
   // ── Perfil da cliente ─────────────────────────────────────────
-  const setProfile = (data) => setProfileState(prev => ({ ...prev, ...data }))
+  const setProfile = (data) => {
+    setProfileState(prev => ({ ...prev, ...data }))
+    if (firebaseOn && data.phone) upsertUsuario(data)
+  }
 
   // ── Auth admin ────────────────────────────────────────────────
   const loginAdmin  = (pin) => { if (pin === brandConfig.adminPin) { setIsAdmin(true); return true } return false }
@@ -425,20 +431,33 @@ export function AppProvider({ children }) {
     }
   }
 
-  // ── Clientes (derivado dos agendamentos) ──────────────────────
+  // ── Clientes (usuários registrados + histórico de agendamentos) ─
   const clients = useMemo(() => {
     const map = {}
+
+    // Base: todos que criaram conta no app
+    usuarios.forEach(u => {
+      map[u.phone] = { name: u.name, phone: u.phone, email: u.email || '', appointments: [], totalSpent: 0, lastVisit: '' }
+    })
+
+    // Mescla agendamentos (adiciona quem agendou sem ter criado conta)
     appointments.forEach(a => {
       const key = a.clientPhone
       if (!map[key]) {
-        map[key] = { name: a.clientName, phone: a.clientPhone, appointments: [], totalSpent: 0, lastVisit: '' }
+        map[key] = { name: a.clientName, phone: key, email: '', appointments: [], totalSpent: 0, lastVisit: '' }
       }
       map[key].appointments.push(a)
       if (a.paymentStatus === 'paid') map[key].totalSpent += (a.service?.price ?? 0)
       if (a.date > map[key].lastVisit) map[key].lastVisit = a.date
     })
-    return Object.values(map).sort((a, b) => b.lastVisit.localeCompare(a.lastVisit))
-  }, [appointments])
+
+    return Object.values(map).sort((a, b) => {
+      // Quem tem visita aparece primeiro, ordenado por data; quem não tem vai ao final
+      if (b.lastVisit && !a.lastVisit) return 1
+      if (a.lastVisit && !b.lastVisit) return -1
+      return b.lastVisit.localeCompare(a.lastVisit)
+    })
+  }, [appointments, usuarios])
 
   // ── Métricas financeiras ──────────────────────────────────────
   const finance = useMemo(() => {

@@ -15,8 +15,8 @@ function ClientDetail({ client, onClose, isVip, onToggleVip, onDelete }) {
   const fmt = iso => new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' })
   const initials = client.name.split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()).join('')
 
-  // Email derivado de qualquer agendamento
-  const email = client.appointments.find(a => a.clientEmail)?.clientEmail
+  // Email: do perfil registrado ou de algum agendamento
+  const email = client.email || client.appointments.find(a => a.clientEmail)?.clientEmail
 
   return (
     <AnimatePresence>
@@ -83,7 +83,7 @@ function ClientDetail({ client, onClose, isVip, onToggleVip, onDelete }) {
             {[
               { label: 'Visitas',       value: client.appointments.length },
               { label: 'Total gasto',   value: `R$${client.totalSpent.toFixed(0)}` },
-              { label: 'Última visita', value: fmt(client.lastVisit) },
+              { label: 'Última visita', value: client.lastVisit ? fmt(client.lastVisit) : '—' },
             ].map(s => (
               <div key={s.label} className="ios-card p-3 text-center">
                 <p className="font-heading text-[15px] font-bold text-accent">{s.value}</p>
@@ -243,7 +243,11 @@ export default function ClientsAdmin() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[15px] font-medium text-label">{client.name}</p>
-                  <p className="text-[12px] text-label-2">{client.appointments.length} visita{client.appointments.length!==1?'s':''} · última em {fmt(client.lastVisit)}</p>
+                  <p className="text-[12px] text-label-2">
+                    {client.appointments.length > 0
+                      ? `${client.appointments.length} visita${client.appointments.length!==1?'s':''} · última em ${fmt(client.lastVisit)}`
+                      : 'Sem agendamentos ainda'}
+                  </p>
                 </div>
                 <div className="flex flex-col items-end flex-shrink-0">
                   <span className="text-[13px] font-semibold text-accent">R$ {client.totalSpent.toFixed(0)}</span>
