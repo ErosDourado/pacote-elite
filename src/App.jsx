@@ -161,41 +161,58 @@ function AppRouter() {
 
   return (
     <div
-      className="fixed inset-0 w-full h-full flex flex-col overflow-hidden"
-      style={{
-        backgroundColor: brandConfig.colors.background,
-        fontFamily: `'${brandConfig.font.body}', sans-serif`,
-      }}
+      className="fixed inset-0 w-full h-full flex justify-center"
+      style={{ backgroundColor: brandConfig.colors.background }}
     >
-      {showChrome && <TopBar onNavigate={navigate} />}
+      {/* Fundo decorativo visível apenas em telas largas */}
+      <div
+        className="hidden md:block fixed inset-0 pointer-events-none"
+        style={{
+          background: `linear-gradient(135deg,
+            color-mix(in srgb, ${brandConfig.colors.primary} 10%, ${brandConfig.colors.background}) 0%,
+            ${brandConfig.colors.background} 40%,
+            color-mix(in srgb, ${brandConfig.colors.primary} 6%, ${brandConfig.colors.background}) 100%)`,
+        }}
+      />
 
-      <main className="flex-1 overflow-y-auto overflow-x-hidden">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activePage}
-            variants={iosTransition}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            className={showChrome ? 'pb-32' : ''}
-          >
-            <ErrorBoundary key={activePage}>
-              <Suspense fallback={<PageLoader />}>
-                <Page onNavigate={navigate} pageState={pageState} />
-              </Suspense>
-            </ErrorBoundary>
-          </motion.div>
+      {/* Shell do app — full-width no mobile, centralizado e com sombra no desktop */}
+      <div
+        className="relative w-full h-full flex flex-col overflow-hidden md:max-w-[430px] md:shadow-[0_0_80px_rgba(0,0,0,0.13)]"
+        style={{
+          backgroundColor: brandConfig.colors.background,
+          fontFamily: `'${brandConfig.font.body}', sans-serif`,
+        }}
+      >
+        {showChrome && <TopBar onNavigate={navigate} />}
+
+        <main className="flex-1 overflow-y-auto overflow-x-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activePage}
+              variants={iosTransition}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className={showChrome ? 'pb-32' : ''}
+            >
+              <ErrorBoundary key={activePage}>
+                <Suspense fallback={<PageLoader />}>
+                  <Page onNavigate={navigate} pageState={pageState} />
+                </Suspense>
+              </ErrorBoundary>
+            </motion.div>
+          </AnimatePresence>
+        </main>
+
+        {showChrome && (
+          <BottomNav activePage={activePage} onNavigate={navigate} />
+        )}
+
+        {/* Splash Screen */}
+        <AnimatePresence>
+          {!dataLoaded && <Splash key="splash" />}
         </AnimatePresence>
-      </main>
-
-      {showChrome && (
-        <BottomNav activePage={activePage} onNavigate={navigate} />
-      )}
-
-      {/* Splash Screen */}
-      <AnimatePresence>
-        {!dataLoaded && <Splash key="splash" />}
-      </AnimatePresence>
+      </div>
     </div>
   )
 }
