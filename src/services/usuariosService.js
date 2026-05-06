@@ -21,6 +21,13 @@ export async function upsertUsuario(data) {
   await setDoc(ref, payload, { merge: true })
 }
 
+/** Atualiza isVip de um usuário pelo email (quando não tem telefone). */
+export async function updateUsuarioVipByEmail(email, isVip) {
+  if (!db || !email) return
+  const ref = doc(db, COLLECTION, email.trim())
+  await setDoc(ref, { email: email.trim(), isVip, updatedAt: serverTimestamp() }, { merge: true })
+}
+
 /** Atualiza isVip de um usuário, preservando email se fornecido. */
 export async function updateUsuarioVip(phone, isVip, email = '') {
   if (!db) return
@@ -39,8 +46,17 @@ export function subscribeUsuarios(onData, onError) {
   return onSnapshot(
     colRef,
     snap => {
-      // phone: d.id garante que o campo phone sempre existe (ID do doc = telefone normalizado)
-      const docs = snap.docs.map(d => ({ phone: d.id, ...d.data() }))
+      const docs = snap.docs.map(d => {
+        const isEmailId = d.id.includes('@')
+        const data = d.data()
+        return {
+          ...data,
+          // Se o ID do doc é email, phone vem do campo data (pode ser vazio)
+          // Se o ID é telefone (dígitos), phone = d.id garante que sempre existe
+          phone: isEmailId ? (data.phone || '') : d.id,
+          email: isEmailId ? d.id : (data.email || ''),
+        }
+      })
       docs.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'))
       onData(docs)
     },

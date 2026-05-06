@@ -11,7 +11,7 @@ const STATUS_LABELS = {
 }
 
 // ── Modal de detalhes da cliente ─────────────────────────────────
-function ClientDetail({ client, onClose, isVip, onToggleVip, onDelete }) {
+function ClientDetail({ client, clientKey, onClose, isVip, onToggleVip, onDelete }) {
   const fmt = iso => new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' })
   const initials = client.name.split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()).join('')
 
@@ -95,7 +95,7 @@ function ClientDetail({ client, onClose, isVip, onToggleVip, onDelete }) {
           {/* Ações: VIP + Excluir */}
           <div className="px-5 mb-5 flex gap-2">
             <button
-              onClick={() => onToggleVip(client.phone)}
+              onClick={() => onToggleVip(clientKey)}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[12px] font-bold uppercase tracking-widest transition-all"
               style={{
                 background: isVip ? 'rgba(212,175,55,0.12)' : 'color-mix(in srgb, var(--color-accent) 8%, transparent)',
@@ -107,7 +107,7 @@ function ClientDetail({ client, onClose, isVip, onToggleVip, onDelete }) {
               {isVip ? 'Remover VIP' : 'Tornar VIP'}
             </button>
             <button
-              onClick={() => onDelete?.(client.phone)}
+              onClick={() => onDelete?.(clientKey)}
               className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-[12px] font-bold uppercase tracking-widest transition-all"
               style={{
                 background: 'rgba(255,59,48,0.1)',
@@ -155,7 +155,7 @@ function ClientDetail({ client, onClose, isVip, onToggleVip, onDelete }) {
 
 // ── Página principal ─────────────────────────────────────────────
 export default function ClientsAdmin() {
-  const { clients, isVipClient, toggleVip } = useApp()
+  const { clients, isVipClient, toggleVip, usuarios } = useApp()
   const [query,    setQuery]    = useState('')
   const [selected, setSelected] = useState(null)
 
@@ -179,10 +179,11 @@ export default function ClientsAdmin() {
 
   const filtered = useMemo(() =>
     clients
-      .filter(c => !hiddenPhones.has(c.phone))
+      .filter(c => !hiddenPhones.has(c.phone || c.email))
       .filter(c =>
         (c.name || '').toLowerCase().includes(query.toLowerCase()) ||
-        (c.phone || '').includes(query)
+        (c.phone || '').includes(query) ||
+        (c.email || '').toLowerCase().includes(query.toLowerCase())
       ), [clients, query, hiddenPhones])
 
   const fmt = iso => new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })
@@ -218,7 +219,7 @@ export default function ClientsAdmin() {
         <div className="ios-section">
           {filtered.map((client, i) => {
             const initials = client.name.split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()).join('')
-            const vip = isVipClient(client.phone)
+            const vip = isVipClient(client.phone || client.email)
             return (
               <motion.button
                 key={client.phone || client.email || i}
@@ -262,8 +263,9 @@ export default function ClientsAdmin() {
       {selected && (
         <ClientDetail
           client={selected}
+          clientKey={selected.phone || selected.email}
           onClose={() => setSelected(null)}
-          isVip={isVipClient(selected.phone)}
+          isVip={isVipClient(selected.phone || selected.email)}
           onToggleVip={toggleVip}
           onDelete={deleteClient}
         />

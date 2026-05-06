@@ -12,7 +12,7 @@ import { subscribeGallery, createGalleryPhoto, updateGalleryPhoto as fsUpdateGal
 import { subscribeAppointments, createAppointment, updateAppointmentStatus as fsUpdateApptStatus, deleteAppointment as fsDeleteAppt } from '../services/appointmentsService'
 import { subscribeWaitlist, createWaitlistEntry, deleteWaitlistEntry, markNotified } from '../services/waitlistService'
 import { subscribeLinks, createLink, updateLink as fsUpdateLink, deleteLink } from '../services/linksService'
-import { upsertUsuario, updateUsuarioVip, subscribeUsuarios } from '../services/usuariosService'
+import { upsertUsuario, updateUsuarioVip, updateUsuarioVipByEmail, subscribeUsuarios } from '../services/usuariosService'
 import { isFirebaseConfigured } from '../firebase'
 import { notifyOwner } from '../services/notificationsService'
 import {
@@ -397,12 +397,15 @@ export function AppProvider({ children }) {
   const normalizePhone = (p) => (p || '').replace(/\D/g, '')
 
   // Lê VIP do Firestore (usuarios) quando online, fallback pra localStorage
-  const isVipClient = (phone) => {
-    const norm = normalizePhone(phone)
-    if (firebaseOn && norm) {
-      return usuarios.some(u => u.phone === norm && u.isVip)
+  // Aceita telefone ou email como identificador
+  const isVipClient = (phoneOrEmail) => {
+    if (firebaseOn) {
+      const norm = normalizePhone(phoneOrEmail)
+      if (norm) return usuarios.some(u => u.phone === norm && u.isVip)
+      if ((phoneOrEmail || '').includes('@')) return usuarios.some(u => u.email === phoneOrEmail && u.isVip)
+      return false
     }
-    return (profile.vipPhones || []).includes(phone)
+    return (profile.vipPhones || []).includes(phoneOrEmail)
   }
 
   // VIP do usuário atual — verifica por telefone E por email (cobre login via Google sem telefone)
@@ -417,22 +420,42 @@ export function AppProvider({ children }) {
 
   const toggleVip = async (phone) => {
     const norm = normalizePhone(phone)
-    if (firebaseOn && norm) {
-      const current = usuarios.find(u => u.phone === norm)
+    const isEmailId = !norm && (phone || '').includes('@')
+
+    if (firebaseOn && (norm || isEmailId)) {
+      // Busca o usuário por telefone ou por email (para usuários sem telefone)
+      const current = norm
+        ? usuarios.find(u => u.phone === norm)
+        : usuarios.find(u => u.email === phone)
       const nextVip = !current?.isVip
-      // Atualização otimista: reflete imediatamente no estado local
+
+      // Atualização otimista
       setUsuarios(prev => {
-        const exists = prev.some(u => u.phone === norm)
-        if (exists) return prev.map(u => u.phone === norm ? { ...u, isVip: nextVip } : u)
-        return [...prev, { id: norm, phone: norm, name: current?.name || '', isVip: nextVip }]
+        if (norm) {
+          const exists = prev.some(u => u.phone === norm)
+          if (exists) return prev.map(u => u.phone === norm ? { ...u, isVip: nextVip } : u)
+          return [...prev, { phone: norm, email: current?.email || '', name: current?.name || '', isVip: nextVip }]
+        } else {
+          const exists = prev.some(u => u.email === phone)
+          if (exists) return prev.map(u => u.email === phone ? { ...u, isVip: nextVip } : u)
+          return [...prev, { phone: '', email: phone, name: current?.name || '', isVip: nextVip }]
+        }
       })
+
       try {
-        const email = current?.email || ''
-        await updateUsuarioVip(norm, nextVip, email)
+        if (norm) {
+          const email = current?.email || ''
+          await updateUsuarioVip(norm, nextVip, email)
+        } else {
+          await updateUsuarioVipByEmail(phone, nextVip)
+        }
       } catch (e) {
         console.error('[toggleVip]', e)
         // Reverte em caso de erro
-        setUsuarios(prev => prev.map(u => u.phone === norm ? { ...u, isVip: !nextVip } : u))
+        setUsuarios(prev => {
+          if (norm) return prev.map(u => u.phone === norm ? { ...u, isVip: !nextVip } : u)
+          return prev.map(u => u.email === phone ? { ...u, isVip: !nextVip } : u)
+        })
       }
     } else {
       setProfileState(prev => {
@@ -481,11 +504,23 @@ export function AppProvider({ children }) {
     const map = {}
     const norm = (p) => (p || '').replace(/\D/g, '')
 
-    // Base: todos que criaram conta no app (telefone já normalizado no ID do doc)
+    // Base: todos que criaram conta no app
+    // Primeiro, processa docs com telefone (prioridade) para evitar duplicatas
+    const usuariosComTelefone = new Set()
     usuarios.forEach(u => {
       const phone = u.phone || ''
+      const email = u.email || ''
       if (!phone) return
-      map[phone] = { name: u.name || '', phone, email: u.email || '', appointments: [], totalSpent: 0, lastVisit: '' }
+      map[phone] = { name: u.name || '', phone, email, appointments: [], totalSpent: 0, lastVisit: '' }
+      if (email) usuariosComTelefone.add(email)
+    })
+    // Depois, docs de email-only (sem telefone) — só adiciona se não há doc de telefone com o mesmo email
+    usuarios.forEach(u => {
+      const phone = u.phone || ''
+      const email = u.email || ''
+      if (phone) return  // já processado acima
+      if (!email || usuariosComTelefone.has(email)) return  // duplicata ou sem chave
+      map[email] = { name: u.name || '', phone: '', email, appointments: [], totalSpent: 0, lastVisit: '' }
     })
 
     // Mescla agendamentos — normaliza o telefone para bater com usuarios
