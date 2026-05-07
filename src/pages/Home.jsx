@@ -312,7 +312,7 @@ function LinksSection({ links }) {
   return (
     <section className="mt-7 px-4">
       <h2 className="section-label mb-4">Conecte-se</h2>
-      <div className="grid grid-cols-4 sm:grid-cols-5 gap-2.5">
+      <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2.5">
         {links.map(l => {
           const Icon = LINK_ICONS[l.icon] ?? ExternalLink
           return (
@@ -377,7 +377,7 @@ function EnvironmentSection({ gallery, resolveImage }) {
               </div>
             ))}
           </div>
-          <div className="hidden md:grid grid-cols-3 gap-3 px-4">
+          <div className="hidden md:grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 px-4 md:px-6">
             {gallery.map(g => (
               <div
                 key={g.id}
@@ -532,7 +532,7 @@ export default function Home({ onNavigate }) {
   }
 
   return (
-    <div>
+    <div className="max-w-7xl mx-auto w-full">
       <div className="pt-4" />
 
       {/* Fita VIP — só para clientes VIP */}
@@ -552,7 +552,7 @@ export default function Home({ onNavigate }) {
               <FeedCard key={post.id} post={post} onClick={setFeedModal} resolveImage={resolveImage} />
             ))}
           </div>
-          <div className="hidden md:grid grid-cols-3 gap-3 px-4">
+          <div className="hidden md:grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 px-4 md:px-6">
             {feedPosts.map(post => (
               <motion.div
                 key={post.id}

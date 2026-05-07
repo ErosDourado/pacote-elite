@@ -56,7 +56,7 @@ export default function AdminLayout({ onNavigate }) {
 
       {/* Header do painel — sem seta voltar; ícone Home à direita */}
       <div
-        className="flex-shrink-0 ios-navbar px-5 flex items-center justify-between pb-3"
+        className="flex-shrink-0 ios-navbar px-5 md:px-8 flex items-center justify-between pb-3 max-w-7xl mx-auto w-full"
         style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}
       >
         <div>
@@ -76,7 +76,7 @@ export default function AdminLayout({ onNavigate }) {
 
       {/* Tabs minimalistas (sem fundo sólido quando ativo) */}
       <div
-        className="flex-shrink-0 px-4 py-2 flex gap-1 overflow-x-auto scrollbar-hide"
+        className="flex-shrink-0 px-4 md:px-8 py-2 flex gap-1 overflow-x-auto scrollbar-hide max-w-7xl mx-auto w-full"
         style={{
           background: 'rgba(242,242,247,0.92)',
           backdropFilter: 'blur(20px)',
@@ -111,6 +111,7 @@ export default function AdminLayout({ onNavigate }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
+            className="max-w-7xl mx-auto w-full md:px-4"
           >
             <TabErrorBoundary key={activeTab}>
               <ActiveComponent />

@@ -53,7 +53,7 @@ export default function TopBar({ onNavigate }) {
         paddingTop: 'env(safe-area-inset-top, 0px)',
       }}
     >
-      <div className="grid grid-cols-[80px_1fr_80px] items-center px-4 h-14">
+      <div className="grid grid-cols-[80px_1fr_80px] items-center px-4 md:px-8 h-14 max-w-7xl mx-auto w-full">
         {/* Spacer esquerdo — mesma largura da direita pra logo ficar centralizada */}
         <div />
 

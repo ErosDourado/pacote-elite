@@ -172,23 +172,12 @@ function AppRouter() {
 
   return (
     <div
-      className="fixed inset-0 w-full h-full flex justify-center"
+      className="fixed inset-0 w-full h-full"
       style={{ backgroundColor: brandConfig.colors.background }}
     >
-      {/* Fundo decorativo visível apenas em telas largas */}
+      {/* Shell do app — full-width em qualquer tela; conteúdo se auto-centraliza */}
       <div
-        className="hidden md:block fixed inset-0 pointer-events-none"
-        style={{
-          background: `linear-gradient(135deg,
-            color-mix(in srgb, ${brandConfig.colors.primary} 10%, ${brandConfig.colors.background}) 0%,
-            ${brandConfig.colors.background} 40%,
-            color-mix(in srgb, ${brandConfig.colors.primary} 6%, ${brandConfig.colors.background}) 100%)`,
-        }}
-      />
-
-      {/* Shell do app — full-width no mobile, centralizado e com sombra no desktop */}
-      <div
-        className="relative w-full h-full flex flex-col overflow-hidden md:max-w-3xl md:shadow-[0_0_80px_rgba(0,0,0,0.13)]"
+        className="relative w-full h-full flex flex-col overflow-hidden"
         style={{
           backgroundColor: brandConfig.colors.background,
           fontFamily: `'${brandConfig.font.body}', sans-serif`,
