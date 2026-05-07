@@ -188,7 +188,7 @@ function AppRouter() {
 
       {/* Shell do app — full-width no mobile, centralizado e com sombra no desktop */}
       <div
-        className="relative w-full h-full flex flex-col overflow-hidden md:max-w-[430px] md:shadow-[0_0_80px_rgba(0,0,0,0.13)]"
+        className="relative w-full h-full flex flex-col overflow-hidden md:max-w-3xl md:shadow-[0_0_80px_rgba(0,0,0,0.13)]"
         style={{
           backgroundColor: brandConfig.colors.background,
           fontFamily: `'${brandConfig.font.body}', sans-serif`,

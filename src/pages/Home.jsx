@@ -377,7 +377,7 @@ function EnvironmentSection({ gallery, resolveImage }) {
               </div>
             ))}
           </div>
-          <div className="hidden md:grid grid-cols-2 gap-3 px-4">
+          <div className="hidden md:grid grid-cols-3 gap-3 px-4">
             {gallery.map(g => (
               <div
                 key={g.id}
@@ -552,7 +552,7 @@ export default function Home({ onNavigate }) {
               <FeedCard key={post.id} post={post} onClick={setFeedModal} resolveImage={resolveImage} />
             ))}
           </div>
-          <div className="hidden md:grid grid-cols-2 gap-3 px-4">
+          <div className="hidden md:grid grid-cols-3 gap-3 px-4">
             {feedPosts.map(post => (
               <motion.div
                 key={post.id}

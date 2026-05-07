@@ -523,14 +523,13 @@ export function AppProvider({ children }) {
       map[email] = { name: u.name || '', phone: '', email, appointments: [], totalSpent: 0, lastVisit: '' }
     })
 
-    // Mescla agendamentos — normaliza o telefone para bater com usuarios
+    // Mescla agendamentos APENAS em entries existentes (não cria entry de "guest")
+    // Regra: só aparece na lista quem logou no app (tem doc em usuarios)
     appointments.forEach(a => {
       const raw = a.clientPhone || ''
-      const key = norm(raw) || raw   // normaliza; se ficar vazio usa o raw
+      const key = norm(raw) || raw
       if (!key) return
-      if (!map[key]) {
-        map[key] = { name: a.clientName || '', phone: key, email: '', appointments: [], totalSpent: 0, lastVisit: '' }
-      }
+      if (!map[key]) return  // ignora agendamentos sem usuário registrado
       // Se o entry veio do usuarios sem nome, preenche pelo agendamento
       if (!map[key].name && a.clientName) map[key].name = a.clientName
       map[key].appointments.push(a)
@@ -538,11 +537,14 @@ export function AppProvider({ children }) {
       if (a.date > map[key].lastVisit) map[key].lastVisit = a.date
     })
 
-    return Object.values(map).sort((a, b) => {
-      if (b.lastVisit && !a.lastVisit) return 1
-      if (a.lastVisit && !b.lastVisit) return -1
-      return b.lastVisit.localeCompare(a.lastVisit)
-    })
+    // Filtra: só mostra clientes que completaram o cadastro (têm nome)
+    return Object.values(map)
+      .filter(c => (c.name || '').trim().length > 0)
+      .sort((a, b) => {
+        if (b.lastVisit && !a.lastVisit) return 1
+        if (a.lastVisit && !b.lastVisit) return -1
+        return b.lastVisit.localeCompare(a.lastVisit)
+      })
   }, [appointments, usuarios])
 
   // ── Métricas financeiras ──────────────────────────────────────
