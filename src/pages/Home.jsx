@@ -345,112 +345,124 @@ function LinksSection({ links }) {
   )
 }
 
-// ── "Nosso Ambiente" — galeria do studio + localização colapsável ─
+// ── "Nosso Ambiente" — só a galeria (localização foi movida pro fim) ─
 function EnvironmentSection({ gallery, resolveImage }) {
-  const [mapOpen, setMapOpen] = useState(false)
-
   return (
     <section className="mt-7">
-      {/* Galeria */}
       <div className="px-4 mb-3">
         <h2 className="section-label">Nosso Ambiente</h2>
         <p className="text-[12px] text-label-2 mt-0.5">Conheça o espaço</p>
       </div>
 
       {gallery?.length > 0 ? (
-        <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory px-4 pb-1">
-          {gallery.map(g => (
-            <div
-              key={g.id}
-              className="flex-shrink-0 snap-center relative overflow-hidden bg-white"
-              style={{ width: 220, aspectRatio: '4/5', borderRadius: 18, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
-            >
-              <img src={resolveImage(g.url)} alt={g.caption || 'Ambiente'} className="w-full h-full object-cover" />
-              {g.caption && (
-                <>
-                  <div
-                    className="absolute inset-0 pointer-events-none"
-                    style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 50%)' }}
-                  />
-                  <p className="absolute bottom-3 left-3 right-3 text-white text-[12px] font-semibold leading-tight">
-                    {g.caption}
-                  </p>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
+        <>
+          {/* Mobile: scroll horizontal | Desktop: grid 2 colunas centralizado */}
+          <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory px-4 pb-1 md:hidden">
+            {gallery.map(g => (
+              <div
+                key={g.id}
+                className="flex-shrink-0 snap-center relative overflow-hidden bg-white"
+                style={{ width: 220, aspectRatio: '4/5', borderRadius: 18, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
+              >
+                <img src={resolveImage(g.url)} alt={g.caption || 'Ambiente'} className="w-full h-full object-cover" />
+                {g.caption && (
+                  <>
+                    <div className="absolute inset-0 pointer-events-none"
+                      style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 50%)' }} />
+                    <p className="absolute bottom-3 left-3 right-3 text-white text-[12px] font-semibold leading-tight">
+                      {g.caption}
+                    </p>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="hidden md:grid grid-cols-2 gap-3 px-4">
+            {gallery.map(g => (
+              <div
+                key={g.id}
+                className="relative overflow-hidden bg-white"
+                style={{ aspectRatio: '4/5', borderRadius: 18, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
+              >
+                <img src={resolveImage(g.url)} alt={g.caption || 'Ambiente'} className="w-full h-full object-cover" />
+                {g.caption && (
+                  <>
+                    <div className="absolute inset-0 pointer-events-none"
+                      style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 50%)' }} />
+                    <p className="absolute bottom-3 left-3 right-3 text-white text-[12px] font-semibold leading-tight">
+                      {g.caption}
+                    </p>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
       ) : (
         <div className="px-4">
-          <div
-            className="rounded-2xl py-8 text-center"
-            style={{ background: 'rgba(120,120,128,0.06)' }}
-          >
+          <div className="rounded-2xl py-8 text-center" style={{ background: 'rgba(120,120,128,0.06)' }}>
             <p className="text-[12px] text-label-2">Nenhuma foto cadastrada ainda</p>
           </div>
         </div>
       )}
+    </section>
+  )
+}
 
-      {/* Localização — colapsável (só mostra mapa ao clicar) */}
-      <div className="px-4 mt-4">
-        <button
-          onClick={() => setMapOpen(o => !o)}
-          className="w-full ios-section text-left"
-        >
-          <div className="ios-row">
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ background: 'color-mix(in srgb, var(--color-accent) 14%, transparent)' }}
-            >
-              <MapPin size={16} strokeWidth={1.5} className="text-accent" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] text-label-2">Onde estamos</p>
-              <p className="text-[15px] font-medium text-label truncate">{brandConfig.address}</p>
-            </div>
-            <motion.div
-              animate={{ rotate: mapOpen ? 90 : 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <ChevronRight size={16} strokeWidth={1.5} className="text-label-3" />
-            </motion.div>
+// ── "Onde estamos" — seção de localização (vai pro final do app) ─
+function LocationSection() {
+  const [mapOpen, setMapOpen] = useState(false)
+
+  return (
+    <section className="mt-7 px-4">
+      <button onClick={() => setMapOpen(o => !o)} className="w-full ios-section text-left">
+        <div className="ios-row">
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ background: 'color-mix(in srgb, var(--color-accent) 14%, transparent)' }}
+          >
+            <MapPin size={16} strokeWidth={1.5} className="text-accent" />
           </div>
-        </button>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] text-label-2">Onde estamos</p>
+            <p className="text-[15px] font-medium text-label truncate">{brandConfig.address}</p>
+          </div>
+          <motion.div animate={{ rotate: mapOpen ? 90 : 0 }} transition={{ duration: 0.2 }}>
+            <ChevronRight size={16} strokeWidth={1.5} className="text-label-3" />
+          </motion.div>
+        </div>
+      </button>
 
-        <AnimatePresence initial={false}>
-          {mapOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0, marginTop: 0 }}
-              animate={{ height: 'auto', opacity: 1, marginTop: 10 }}
-              exit={{ height: 0, opacity: 0, marginTop: 0 }}
-              transition={{ duration: 0.25 }}
-              style={{ overflow: 'hidden' }}
+      <AnimatePresence initial={false}>
+        {mapOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0, marginTop: 0 }}
+            animate={{ height: 'auto', opacity: 1, marginTop: 10 }}
+            exit={{ height: 0, opacity: 0, marginTop: 0 }}
+            transition={{ duration: 0.25 }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div className="ios-card overflow-hidden" style={{ height: 200, borderRadius: 20 }}>
+              <iframe
+                title="Localização do Studio"
+                src={brandConfig.mapsEmbedUrl}
+                width="100%"
+                height="100%"
+                loading="lazy"
+                style={{ border: 'none', display: 'block' }}
+                allowFullScreen
+              />
+            </div>
+            <button
+              onClick={() => window.open(brandConfig.mapsUrl, '_blank')}
+              className="mt-2 w-full py-2.5 rounded-xl text-[12px] font-bold uppercase tracking-wider text-accent"
+              style={{ background: 'color-mix(in srgb, var(--color-accent) 8%, transparent)' }}
             >
-              <div
-                className="ios-card overflow-hidden"
-                style={{ height: 200, borderRadius: 20 }}
-              >
-                <iframe
-                  title="Localização do Studio"
-                  src={brandConfig.mapsEmbedUrl}
-                  width="100%"
-                  height="100%"
-                  loading="lazy"
-                  style={{ border: 'none', display: 'block' }}
-                  allowFullScreen
-                />
-              </div>
-              <button
-                onClick={() => window.open(brandConfig.mapsUrl, '_blank')}
-                className="mt-2 w-full py-2.5 rounded-xl text-[12px] font-bold uppercase tracking-wider text-accent"
-                style={{ background: 'color-mix(in srgb, var(--color-accent) 8%, transparent)' }}
-              >
-                Abrir no Google Maps
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+              Abrir no Google Maps
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   )
 }
@@ -501,7 +513,7 @@ function VipRibbon({ name }) {
 
 // ── Página Home ───────────────────────────────────────────────────
 export default function Home({ onNavigate }) {
-  const { banners, feedPosts, procedures, links, gallery, amIVip, resolveImage } = useApp()
+  const { banners, feedPosts, procedures, links, gallery, amIVip, resolveImage, profile } = useApp()
   const isVip = amIVip
   const [feedModal, setFeedModal] = useState(null)
 
@@ -529,15 +541,37 @@ export default function Home({ onNavigate }) {
       {/* Banner com swipe + CTA dinâmico (filtra VIP) */}
       <HeroBanner banners={visibleBanners} onCtaClick={handleBannerCta} resolveImage={resolveImage} />
 
-      {/* Feed — scroll horizontal com cards retrato (clique abre modal) */}
+      {/* Feed — scroll horizontal no mobile, grid 2 colunas no desktop */}
       {feedPosts.length > 0 && (
         <section className="mt-7">
           <div className="section-header px-4 mb-3">
             <h2 className="section-label">Feed</h2>
           </div>
-          <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory px-4 pb-1">
+          <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory px-4 pb-1 md:hidden">
             {feedPosts.map(post => (
               <FeedCard key={post.id} post={post} onClick={setFeedModal} resolveImage={resolveImage} />
+            ))}
+          </div>
+          <div className="hidden md:grid grid-cols-2 gap-3 px-4">
+            {feedPosts.map(post => (
+              <motion.div
+                key={post.id}
+                className="relative overflow-hidden cursor-pointer"
+                style={{ aspectRatio: '3/4', borderRadius: 18 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => setFeedModal(post)}
+              >
+                {post.imageUrl ? (
+                  <img
+                    src={resolveImage(post.imageUrl)}
+                    alt={post.procedure || post.title}
+                    className="w-full h-full object-cover"
+                    style={{ objectPosition: post.objectPosition || '50% 50%' }}
+                  />
+                ) : (
+                  <div className="w-full h-full" style={{ background: 'color-mix(in srgb, var(--color-accent) 12%, var(--color-surface))' }} />
+                )}
+              </motion.div>
             ))}
           </div>
         </section>
@@ -554,6 +588,9 @@ export default function Home({ onNavigate }) {
 
       {/* Conecte-se (quadradinhos compactos) */}
       <LinksSection links={links} />
+
+      {/* Onde estamos — sempre no final */}
+      <LocationSection />
 
       {/* Espaço final */}
       <div className="h-6" />

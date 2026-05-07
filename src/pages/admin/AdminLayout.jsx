@@ -23,7 +23,7 @@ const TABS = [
 ]
 
 class TabErrorBoundary extends Component {
-  constructor(props) { super(props); this.state = { error: null } }
+  constructor(props) { super(props); this.state = { error: null, retryKey: 0 } }
   static getDerivedStateFromError(error) { return { error } }
   componentDidCatch(error, info) { console.error('[AdminTab]', error, info) }
   render() {
@@ -33,7 +33,7 @@ class TabErrorBoundary extends Component {
           <p className="text-[15px] font-semibold text-label">Erro nesta seção</p>
           <p className="text-[12px] text-label-2">Tente trocar de aba e voltar.</p>
           <button
-            onClick={() => this.setState({ error: null })}
+            onClick={() => this.setState(s => ({ error: null, retryKey: s.retryKey + 1 }))}
             className="mt-2 px-5 py-2 rounded-xl text-[12px] font-bold uppercase tracking-wider text-white"
             style={{ background: 'var(--color-accent)' }}
           >
@@ -42,7 +42,8 @@ class TabErrorBoundary extends Component {
         </div>
       )
     }
-    return this.props.children
+    // key força remount dos children no retry
+    return <div key={this.state.retryKey}>{this.props.children}</div>
   }
 }
 

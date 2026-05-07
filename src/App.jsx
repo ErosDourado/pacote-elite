@@ -68,13 +68,24 @@ class ErrorBoundary extends Component {
       return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] px-8 text-center gap-4">
           <p className="text-[17px] font-semibold text-label">Algo deu errado</p>
-          <p className="text-[13px] text-label-2">Tente recarregar a página.</p>
-          <button
-            onClick={() => this.setState({ error: null })}
-            className="btn-fill"
-          >
-            Tentar novamente
-          </button>
+          <p className="text-[13px] text-label-2">Não foi possível abrir esta página.</p>
+          <div className="flex gap-2 mt-1">
+            <button
+              onClick={() => {
+                this.setState({ error: null })
+                this.props.onNavigate?.('home')
+              }}
+              className="btn-fill"
+            >
+              Voltar para Início
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="btn-tint"
+            >
+              Recarregar
+            </button>
+          </div>
         </div>
       )
     }
@@ -195,7 +206,7 @@ function AppRouter() {
               exit="exit"
               className={showChrome ? 'pb-32' : ''}
             >
-              <ErrorBoundary key={activePage}>
+              <ErrorBoundary key={activePage} onNavigate={navigate}>
                 <Suspense fallback={<PageLoader />}>
                   <Page onNavigate={navigate} pageState={pageState} />
                 </Suspense>
