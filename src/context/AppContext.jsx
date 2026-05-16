@@ -402,7 +402,10 @@ export function AppProvider({ children }) {
     if (firebaseOn) {
       const norm = normalizePhone(phoneOrEmail)
       if (norm) return usuarios.some(u => u.phone === norm && u.isVip)
-      if ((phoneOrEmail || '').includes('@')) return usuarios.some(u => u.email === phoneOrEmail && u.isVip)
+      if ((phoneOrEmail || '').includes('@')) {
+        const e = phoneOrEmail.trim().toLowerCase()
+        return usuarios.some(u => (u.email || '').trim().toLowerCase() === e && u.isVip)
+      }
       return false
     }
     return (profile.vipPhones || []).includes(phoneOrEmail)
@@ -412,10 +415,13 @@ export function AppProvider({ children }) {
   const amIVip = useMemo(() => {
     if (!firebaseOn) return (profile.vipPhones || []).includes(profile.phone)
     const norm = normalizePhone(profile.phone)
-    return usuarios.some(u =>
-      (norm && u.phone === norm && u.isVip) ||
-      (profile.email && u.email === profile.email && u.isVip)
-    )
+    const emailNorm = (profile.email || '').trim().toLowerCase()
+    return usuarios.some(u => {
+      if (!u.isVip) return false
+      if (norm && u.phone === norm) return true
+      if (emailNorm && (u.email || '').trim().toLowerCase() === emailNorm) return true
+      return false
+    })
   }, [usuarios, profile, firebaseOn])
 
   const toggleVip = async (phone) => {
@@ -444,7 +450,10 @@ export function AppProvider({ children }) {
 
       try {
         if (norm) {
-          const email = current?.email || ''
+          // Fallback: se a entry não tem email, mas o phone bate com o admin
+          // logado, usa profile.email — assim amIVip do dono funciona.
+          const fallbackEmail = (norm === normalizePhone(profile.phone)) ? (profile.email || '') : ''
+          const email = current?.email || fallbackEmail
           await updateUsuarioVip(norm, nextVip, email)
         } else {
           await updateUsuarioVipByEmail(phone, nextVip)

@@ -28,17 +28,30 @@ class TabErrorBoundary extends Component {
   componentDidCatch(error, info) { console.error('[AdminTab]', error, info) }
   render() {
     if (this.state.error) {
+      const msg = this.state.error?.message || String(this.state.error)
       return (
         <div className="flex flex-col items-center justify-center py-20 px-8 text-center gap-3">
           <p className="text-[15px] font-semibold text-label">Erro nesta seção</p>
           <p className="text-[12px] text-label-2">Tente trocar de aba e voltar.</p>
-          <button
-            onClick={() => this.setState(s => ({ error: null, retryKey: s.retryKey + 1 }))}
-            className="mt-2 px-5 py-2 rounded-xl text-[12px] font-bold uppercase tracking-wider text-white"
-            style={{ background: 'var(--color-accent)' }}
-          >
-            Tentar novamente
-          </button>
+          <p className="text-[11px] font-mono break-all" style={{ color: 'rgba(60,60,67,0.55)', maxWidth: 320 }}>
+            {msg}
+          </p>
+          <div className="flex gap-2 mt-1">
+            <button
+              onClick={() => this.setState(s => ({ error: null, retryKey: s.retryKey + 1 }))}
+              className="px-5 py-2 rounded-xl text-[12px] font-bold uppercase tracking-wider text-white"
+              style={{ background: 'var(--color-accent)' }}
+            >
+              Tentar novamente
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-5 py-2 rounded-xl text-[12px] font-bold uppercase tracking-wider"
+              style={{ background: 'color-mix(in srgb, var(--color-accent) 12%, transparent)', color: 'var(--color-accent)' }}
+            >
+              Recarregar
+            </button>
+          </div>
         </div>
       )
     }

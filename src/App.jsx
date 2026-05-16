@@ -55,7 +55,7 @@ const ADMIN_ONLY = new Set(['admin', 'finance'])
 const iosTransition = {
   initial: { opacity: 0, y: 14, scale: 0.99 },
   animate: { opacity: 1, y: 0,  scale: 1,    transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] } },
-  exit:    { opacity: 0, y: -8, scale: 0.99,  transition: { duration: 0.2 } },
+  exit:    { opacity: 0, y: -8, scale: 0.99, pointerEvents: 'none', transition: { duration: 0.2 } },
 }
 
 // Error Boundary — captura erros de render e evita tela branca
@@ -130,16 +130,13 @@ function AppRouter() {
     document.addEventListener('gesturestart',  noGesture, { passive: false })
     document.addEventListener('gesturechange', noGesture, { passive: false })
     document.addEventListener('gestureend',    noGesture, { passive: false })
-    // Bloqueia double-tap zoom
-    let lastTap = 0
-    const noDbTap = e => { const now = Date.now(); if (now - lastTap < 300) e.preventDefault(); lastTap = now }
-    document.addEventListener('touchend', noDbTap, { passive: false })
+    // Double-tap zoom já é bloqueado por `touch-action: manipulation` no CSS,
+    // o listener JS aqui costumava consumir cliques rápidos. Removido.
     return () => {
       document.removeEventListener('contextmenu', noCtx)
       document.removeEventListener('gesturestart',  noGesture)
       document.removeEventListener('gesturechange', noGesture)
       document.removeEventListener('gestureend',    noGesture)
-      document.removeEventListener('touchend', noDbTap)
     }
   }, [])
 
@@ -186,7 +183,7 @@ function AppRouter() {
         {showChrome && <TopBar onNavigate={navigate} />}
 
         <main className="flex-1 overflow-y-auto overflow-x-hidden">
-          <AnimatePresence mode="wait">
+          <AnimatePresence>
             <motion.div
               key={activePage}
               variants={iosTransition}

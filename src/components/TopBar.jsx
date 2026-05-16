@@ -101,15 +101,17 @@ export default function TopBar({ onNavigate }) {
               style={{ color: open ? 'var(--color-accent)' : 'var(--color-secondary)' }} />
           </motion.button>
 
+          {/* Backdrop fora do AnimatePresence — unmounta instantaneamente */}
+          {open && (
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setOpen(false)}
+              onTouchStart={() => setOpen(false)}
+            />
+          )}
           <AnimatePresence>
             {open && (
               <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setOpen(false)}
-                  onTouchStart={() => setOpen(false)}
-                />
-
                 <motion.div
                   className="absolute right-0 z-50 w-56 overflow-hidden"
                   style={{
@@ -149,7 +151,7 @@ export default function TopBar({ onNavigate }) {
                   {items.map((item, i) => (
                     <button
                       key={item.id}
-                      onClick={async () => { await item.onClick(); setOpen(false) }}
+                      onClick={() => { setOpen(false); Promise.resolve().then(() => item.onClick()) }}
                       className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:opacity-60 transition-opacity"
                       style={{ borderBottom: i < items.length - 1 ? '0.33px solid rgba(60,60,67,0.1)' : 'none' }}
                     >
