@@ -205,8 +205,12 @@ function ProceduresSection({ procedures, onNavigate, resolveImage }) {
             style={{ width: '85vw', maxWidth: 360, boxShadow: '0 12px 32px rgba(0,0,0,0.18)' }}
           >
             <div className="h-44 overflow-hidden">
-              <img alt={p.titulo} className="w-full h-full object-cover"
-                style={{ objectPosition: p.objectPosition || '50% 50%' }} src={resolveImage(p.imagem)} />
+              {resolveImage(p.imagem) ? (
+                <img alt={p.titulo} className="w-full h-full object-cover"
+                  style={{ objectPosition: p.objectPosition || '50% 50%' }} src={resolveImage(p.imagem)} />
+              ) : (
+                <div className="w-full h-full" style={{ background: 'color-mix(in srgb, var(--color-accent) 12%, var(--color-bg))' }} />
+              )}
             </div>
             <div className="p-5 flex flex-col flex-1">
               <h3 className="font-headline text-[15px] font-bold mb-2 uppercase tracking-wide text-accent">
@@ -243,7 +247,7 @@ function FeedCard({ post, onClick, resolveImage }) {
       whileTap={{ scale: 0.97 }}
       onClick={() => onClick(post)}
     >
-      {post.imageUrl ? (
+      {post.imageUrl && resolveImage(post.imageUrl) ? (
         <img
           src={resolveImage(post.imageUrl)}
           alt={post.procedure || post.title}
@@ -275,7 +279,7 @@ function FeedModal({ post, onClose, onNavigate, resolveImage }) {
           transition={{ type: 'spring', stiffness: 380, damping: 38 }}
           onClick={e => e.stopPropagation()}
         >
-          {post.imageUrl && (
+          {post.imageUrl && resolveImage(post.imageUrl) && (
             <div className="relative overflow-hidden" style={{ height: 300, borderRadius: '28px 28px 0 0' }}>
               <img src={resolveImage(post.imageUrl)} alt={post.title}
                 className="w-full h-full object-cover"
@@ -371,7 +375,11 @@ function EnvironmentSection({ gallery, resolveImage }) {
                 className="flex-shrink-0 snap-center relative overflow-hidden bg-white"
                 style={{ width: 220, aspectRatio: '4/5', borderRadius: 18, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
               >
-                <img src={resolveImage(g.url)} alt={g.caption || 'Ambiente'} className="w-full h-full object-cover" />
+                {resolveImage(g.url) ? (
+                  <img src={resolveImage(g.url)} alt={g.caption || 'Ambiente'} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full" style={{ background: 'color-mix(in srgb, var(--color-accent) 8%, var(--color-bg))' }} />
+                )}
                 {g.caption && (
                   <>
                     <div className="absolute inset-0 pointer-events-none"
@@ -391,7 +399,11 @@ function EnvironmentSection({ gallery, resolveImage }) {
                 className="relative overflow-hidden bg-white"
                 style={{ aspectRatio: '4/5', borderRadius: 18, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
               >
-                <img src={resolveImage(g.url)} alt={g.caption || 'Ambiente'} className="w-full h-full object-cover" />
+                {resolveImage(g.url) ? (
+                  <img src={resolveImage(g.url)} alt={g.caption || 'Ambiente'} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full" style={{ background: 'color-mix(in srgb, var(--color-accent) 8%, var(--color-bg))' }} />
+                )}
                 {g.caption && (
                   <>
                     <div className="absolute inset-0 pointer-events-none"
@@ -568,7 +580,7 @@ export default function Home({ onNavigate }) {
                 whileTap={{ scale: 0.97 }}
                 onClick={() => setFeedModal(post)}
               >
-                {post.imageUrl ? (
+                {post.imageUrl && resolveImage(post.imageUrl) ? (
                   <img
                     src={resolveImage(post.imageUrl)}
                     alt={post.procedure || post.title}
