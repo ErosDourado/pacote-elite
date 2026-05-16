@@ -411,18 +411,24 @@ export function AppProvider({ children }) {
     return (profile.vipPhones || []).includes(phoneOrEmail)
   }
 
-  // VIP do usuário atual — verifica por telefone E por email (cobre login via Google sem telefone)
+  // VIP do usuário atual — verifica por telefone E por email (cobre login via Google sem telefone).
+  // Usa currentUser.email como fonte primária (Firebase Auth é a verdade) e cai no profile.email
+  // caso ainda não esteja hidratado.
   const amIVip = useMemo(() => {
     if (!firebaseOn) return (profile.vipPhones || []).includes(profile.phone)
     const norm = normalizePhone(profile.phone)
-    const emailNorm = (profile.email || '').trim().toLowerCase()
-    return usuarios.some(u => {
+    const emailNorm = (currentUser?.email || profile.email || '').trim().toLowerCase()
+    const match = usuarios.find(u => {
       if (!u.isVip) return false
       if (norm && u.phone === norm) return true
       if (emailNorm && (u.email || '').trim().toLowerCase() === emailNorm) return true
       return false
     })
-  }, [usuarios, profile, firebaseOn])
+    if (typeof window !== 'undefined' && window.__VIP_DEBUG__) {
+      console.log('[amIVip]', { norm, emailNorm, usuarios, match })
+    }
+    return !!match
+  }, [usuarios, profile, currentUser, firebaseOn])
 
   const toggleVip = async (phone) => {
     const norm = normalizePhone(phone)

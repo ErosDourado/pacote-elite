@@ -8,23 +8,31 @@ import { db } from '../firebase'
 const COLLECTION = 'usuarios'
 const colRef = db ? collection(db, COLLECTION) : null
 
-/** Salva/atualiza um usuário. Cria docs tanto pelo phone quanto pelo email se ambos existirem. */
+/** Salva/atualiza um usuário. Cria docs tanto pelo phone quanto pelo email se ambos existirem.
+ *  Importante: NÃO sobrescreve campos com string vazia — só persiste valores que existem,
+ *  pra não apagar email/phone/name previamente salvos. */
 export async function upsertUsuario(data) {
   if (!colRef || !db) return
   const phone = (data.phone || '').replace(/\D/g, '')
   const email = (data.email || '').trim().toLowerCase()
+  const name  = (data.name || '').trim()
   if (!phone && !email) return
-  const payloadBase = { name: data.name || '', updatedAt: serverTimestamp() }
+
   const writes = []
   if (phone) {
-    const ref = doc(db, COLLECTION, phone)
-    writes.push(setDoc(ref, { ...payloadBase, phone, email }, { merge: true }))
+    const payload = { updatedAt: serverTimestamp(), phone }
+    if (name)  payload.name  = name
+    if (email) payload.email = email
+    writes.push(setDoc(doc(db, COLLECTION, phone), payload, { merge: true }))
   }
   if (email) {
-    const ref = doc(db, COLLECTION, email)
-    writes.push(setDoc(ref, { ...payloadBase, email, phone }, { merge: true }))
+    const payload = { updatedAt: serverTimestamp(), email }
+    if (name)  payload.name  = name
+    if (phone) payload.phone = phone
+    writes.push(setDoc(doc(db, COLLECTION, email), payload, { merge: true }))
   }
-  await Promise.all(writes)
+  try { await Promise.all(writes) }
+  catch (e) { console.error('[upsertUsuario]', e) }
 }
 
 /** Atualiza isVip de um usuário pelo email (quando não tem telefone). */
