@@ -106,17 +106,24 @@ function HeroBanner({ banners, onCtaClick, resolveImage }) {
               />
             ) : (
               <picture className="w-full h-full">
-                {banner.urlDesktop && (
+                {banner.urlDesktop && resolveImage(banner.urlDesktop) && (
                   <source media="(min-width: 768px)" srcSet={resolveImage(banner.urlDesktop)} />
                 )}
-                <img
-                  src={resolveImage(banner.url)}
-                  alt={banner.title}
-                  draggable={false}
-                  className="w-full h-full object-cover pointer-events-none"
-                  style={{ objectPosition: banner.objectPosition || 'center' }}
-                  onError={() => setImgErrors(prev => ({ ...prev, [banner.id]: true }))}
-                />
+                {resolveImage(banner.url) ? (
+                  <img
+                    src={resolveImage(banner.url)}
+                    alt={banner.title}
+                    draggable={false}
+                    className="w-full h-full object-cover pointer-events-none"
+                    style={{ objectPosition: banner.objectPosition || 'center' }}
+                    onError={() => setImgErrors(prev => ({ ...prev, [banner.id]: true }))}
+                  />
+                ) : (
+                  <div
+                    className="w-full h-full"
+                    style={{ background: 'color-mix(in srgb, var(--color-accent) 12%, var(--color-bg))' }}
+                  />
+                )}
               </picture>
             )}
             <div

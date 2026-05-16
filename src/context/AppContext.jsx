@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { idbPut, idbDel, idbAll } from '../utils/imageDB'
 import { brandConfig } from '../brandConfig'
 import { observeAuth, signOut as authSignOut } from '../services/authService'
@@ -74,9 +74,13 @@ export function AppProvider({ children }) {
     idbAll().then(map => setImageMap(map))
   }, [])
 
+  // Ref pra resolveImage não invalidar callbacks que dependem dele (subscriptions)
+  const imageMapRef = useRef(imageMap)
+  useEffect(() => { imageMapRef.current = imageMap }, [imageMap])
+
   const resolveImage = useCallback((src) => {
     if (!src) return ''
-    if (src.startsWith('idb:')) return imageMap[src] ?? ''
+    if (src.startsWith('idb:')) return imageMapRef.current[src] ?? ''
     return src
   }, [imageMap])
 
@@ -105,11 +109,12 @@ export function AppProvider({ children }) {
 
     const checkReady = (key, data) => {
       emitted.add(key)
-      
+
       // Se forem banners e houver algum, tentamos pre-carregar a primeira imagem
       if (key === 'banners' && data?.length > 0) {
         const firstBanner = data[0]
-        const src = resolveImage(firstBanner.url)
+        const rawSrc = firstBanner.url || ''
+        const src = rawSrc.startsWith('idb:') ? (imageMapRef.current[rawSrc] ?? '') : rawSrc
         if (src && !src.startsWith('idb:')) { // Pre-load apenas se for URL externa/Firebase
           const img = new Image()
           img.src = src
@@ -152,7 +157,8 @@ export function AppProvider({ children }) {
       subscribeUsuarios(setUsuarios,     e => console.error('[ctx] usuarios:', e)),
     ]
     return () => unsubs.forEach(u => u())
-  }, [firebaseOn, resolveImage])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firebaseOn])
 
   // Pre-load de imagens dos banners para evitar "pulo" visual
   useEffect(() => {
