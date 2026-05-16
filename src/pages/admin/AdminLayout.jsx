@@ -114,7 +114,7 @@ export default function AdminLayout({ onNavigate }) {
             className="max-w-7xl mx-auto w-full md:px-4"
           >
             <TabErrorBoundary key={activeTab}>
-              <ActiveComponent />
+              <ActiveComponent onNavigate={onNavigate} />
             </TabErrorBoundary>
           </motion.div>
         </AnimatePresence>

@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MoreVertical, User, Sliders, CircleDollarSign, LogIn, LogOut, ShoppingBag } from 'lucide-react'
+import { MoreVertical, User, Sliders, CircleDollarSign, LogIn, LogOut, ShoppingBag, Crown } from 'lucide-react'
 import { themeConfig } from '../themeConfig'
 import { useApp } from '../context/AppContext'
 
 export default function TopBar({ onNavigate }) {
-  const { isAdmin, currentUser, firebaseOn, logoutAdmin, loginAdmin, cart } = useApp()
+  const { isAdmin, currentUser, firebaseOn, logoutAdmin, loginAdmin, cart, amIVip } = useApp()
   const cartQty = cart.reduce((s, i) => s + i.qty, 0)
   const [open, setOpen] = useState(false)
 
@@ -127,9 +127,21 @@ export default function TopBar({ onNavigate }) {
                   {/* Header com email do usuário (se logado) */}
                   {isLoggedIn && (
                     <div className="px-4 py-3" style={{ borderBottom: '0.33px solid rgba(60,60,67,0.1)' }}>
-                      <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(60,60,67,0.45)' }}>
-                        {isAdmin ? 'Conta Admin' : 'Conta'}
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(60,60,67,0.45)' }}>
+                          {isAdmin ? 'Conta Admin' : 'Conta'}
+                        </p>
+                        {amIVip && (
+                          <span
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full"
+                            style={{ background: 'rgba(212,175,55,0.14)' }}
+                            title="Conta VIP"
+                          >
+                            <Crown size={9} strokeWidth={2.5} style={{ color: '#D4AF37' }} />
+                            <span className="text-[9px] font-bold tracking-widest" style={{ color: '#D4AF37' }}>VIP</span>
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[13px] font-semibold text-label truncate mt-0.5">{currentUser.email}</p>
                     </div>
                   )}

@@ -281,7 +281,7 @@ function StepDateTime({ selectedDate, selectedTime, onPickDate, onPickTime, take
 }
 
 // ── STEP 3 — Dados do cliente ────────────────────────────────────
-function StepData({ booking, name, phone, email, onName, onPhone, onEmail, wantNotified, onWantNotified, error, onBack }) {
+function StepData({ booking, name, phone, email, onName, onPhone, onEmail, wantNotified, onWantNotified, error, onBack, isAdminBooking, adminClient }) {
   const fmtBR = iso => {
     const [y, m, d] = iso.split('-')
     return `${d}/${m}/${y}`
@@ -290,6 +290,32 @@ function StepData({ booking, name, phone, email, onName, onPhone, onEmail, wantN
   return (
     <div>
       <BackButton onClick={onBack} />
+
+      {/* Banner: modo admin agendando para uma cliente */}
+      {isAdminBooking && (
+        <div
+          className="mb-4 px-4 py-3 rounded-2xl flex items-center gap-3"
+          style={{
+            background: 'color-mix(in srgb, var(--color-accent) 10%, white)',
+            border: '1px solid color-mix(in srgb, var(--color-accent) 30%, transparent)',
+          }}
+        >
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'color-mix(in srgb, var(--color-accent) 18%, transparent)' }}
+          >
+            <User size={16} strokeWidth={2} className="text-accent" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(60,60,67,0.55)' }}>
+              Agendando para
+            </p>
+            <p className="text-[14px] font-bold text-label truncate">
+              {adminClient?.name || adminClient?.phone || adminClient?.email || 'Cliente'}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Resumo */}
       <div
@@ -346,9 +372,9 @@ function StepData({ booking, name, phone, email, onName, onPhone, onEmail, wantN
         </h2>
 
         {[
-          { key: 'name',  label: 'Nome completo *',     Icon: User,  type: 'text',  ph: 'Seu nome completo',   value: name,  setter: onName  },
-          { key: 'phone', label: 'Celular (WhatsApp) *', Icon: Phone, type: 'tel',   ph: '(11) 99999-9999',     value: phone, setter: onPhone },
-          { key: 'email', label: 'E-mail',                Icon: Mail,  type: 'email', ph: 'seu@email.com',       value: email, setter: onEmail },
+          { key: 'name',  label: 'Nome completo *',     Icon: User,  type: 'text',  ph: 'Seu nome completo',   value: name,  setter: onName,  locked: isAdminBooking },
+          { key: 'phone', label: 'Celular (WhatsApp) *', Icon: Phone, type: 'tel',   ph: '(11) 99999-9999',     value: phone, setter: onPhone, locked: isAdminBooking },
+          { key: 'email', label: 'E-mail',                Icon: Mail,  type: 'email', ph: 'seu@email.com',       value: email, setter: onEmail, locked: false },
         ].map(f => (
           <label key={f.key} className="flex flex-col gap-1.5">
             <span
@@ -364,12 +390,14 @@ function StepData({ booking, name, phone, email, onName, onPhone, onEmail, wantN
                 value={f.value}
                 onChange={e => f.setter(e.target.value)}
                 placeholder={f.ph}
+                readOnly={f.locked}
                 className="w-full rounded-xl px-4 py-3 pl-9 text-[13px] focus:outline-none transition-all"
                 style={{
                   border: '1px solid rgba(60,60,67,0.18)',
-                  background: 'white',
+                  background: f.locked ? 'rgba(120,120,128,0.06)' : 'white',
+                  cursor: f.locked ? 'not-allowed' : 'text',
                 }}
-                onFocus={e => e.currentTarget.style.borderColor = 'var(--color-accent)'}
+                onFocus={e => { if (!f.locked) e.currentTarget.style.borderColor = 'var(--color-accent)' }}
                 onBlur={e => e.currentTarget.style.borderColor = 'rgba(60,60,67,0.18)'}
               />
             </div>
@@ -643,13 +671,18 @@ export default function Scheduling({ pageState }) {
   // Estado inicial — recupera de sessionStorage se existir (persistência ao recarregar)
   const persisted = loadBooking()
 
+  // Modo admin: agendamento feito por um admin em nome de uma cliente.
+  // pageState.clientData vem da aba Clientes (botão "Agendar").
+  const adminClient = pageState?.clientData ?? null
+  const isAdminBooking = !!adminClient
+
   const [step,  setStep]  = useState(persisted?.step  ?? 1)
   const [svc,   setSvc]   = useState(persisted?.svc   ?? null)
   const [date,  setDate]  = useState(persisted?.date  ?? '')
   const [time,  setTime]  = useState(persisted?.time  ?? '')
-  const [name,  setName]  = useState(persisted?.name  ?? profile.name  ?? '')
-  const [phone, setPhone] = useState(persisted?.phone ?? profile.phone ?? '')
-  const [email, setEmail] = useState(persisted?.email ?? profile.email ?? '')
+  const [name,  setName]  = useState(adminClient?.name  ?? persisted?.name  ?? profile.name  ?? '')
+  const [phone, setPhone] = useState(adminClient?.phone ?? persisted?.phone ?? profile.phone ?? '')
+  const [email, setEmail] = useState(adminClient?.email ?? persisted?.email ?? profile.email ?? '')
   const [error, setError] = useState('')
   const [done,  setDone]  = useState(null)
   const [slotConflict, setSlotConflict] = useState(null) // {date, time} quando ocupado
@@ -861,6 +894,8 @@ export default function Scheduling({ pageState }) {
                   onWantNotified={setWantNotified}
                   error={error}
                   onBack={() => goToStep(2)}
+                  isAdminBooking={isAdminBooking}
+                  adminClient={adminClient}
                 />
                 <button
                   onClick={handleSubmit}

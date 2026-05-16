@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Search, Users, X, Calendar, ChevronRight, Mail, Phone, Crown, Trash2 } from 'lucide-react'
+import { Search, Users, X, Calendar, ChevronRight, Mail, Phone, Crown, Trash2, CalendarPlus } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '../../context/AppContext'
 
@@ -11,7 +11,7 @@ const STATUS_LABELS = {
 }
 
 // ── Modal de detalhes da cliente ─────────────────────────────────
-function ClientDetail({ client, clientKey, onClose, isVip, onToggleVip, onDelete }) {
+function ClientDetail({ client, clientKey, onClose, isVip, onToggleVip, onDelete, onSchedule }) {
   const fmt = iso => new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' })
   const initials = client.name.split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()).join('')
 
@@ -92,6 +92,23 @@ function ClientDetail({ client, clientKey, onClose, isVip, onToggleVip, onDelete
             ))}
           </div>
 
+          {/* Ação principal: Agendar para esta cliente */}
+          {onSchedule && (
+            <div className="px-5 mb-3">
+              <button
+                onClick={() => onSchedule(client)}
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-[13px] font-bold uppercase tracking-widest transition-all"
+                style={{
+                  background: 'var(--color-accent)',
+                  color: 'white',
+                }}
+              >
+                <CalendarPlus size={15} strokeWidth={2} />
+                Agendar para esta cliente
+              </button>
+            </div>
+          )}
+
           {/* Ações: VIP + Excluir */}
           <div className="px-5 mb-5 flex gap-2">
             <button
@@ -154,7 +171,7 @@ function ClientDetail({ client, clientKey, onClose, isVip, onToggleVip, onDelete
 }
 
 // ── Página principal ─────────────────────────────────────────────
-export default function ClientsAdmin() {
+export default function ClientsAdmin({ onNavigate }) {
   const { clients, isVipClient, toggleVip, usuarios } = useApp()
   const [query,    setQuery]    = useState('')
   const [selected, setSelected] = useState(null)
@@ -174,6 +191,18 @@ export default function ClientsAdmin() {
     const next = new Set(hiddenPhones)
     next.add(phone)
     persistHidden(next)
+    setSelected(null)
+  }
+
+  const handleSchedule = (client) => {
+    if (!onNavigate) return
+    onNavigate('scheduling', {
+      clientData: {
+        name:  client.name  || '',
+        phone: client.phone || '',
+        email: client.email || '',
+      },
+    })
     setSelected(null)
   }
 
@@ -268,6 +297,7 @@ export default function ClientsAdmin() {
           isVip={isVipClient(selected.phone || selected.email)}
           onToggleVip={toggleVip}
           onDelete={deleteClient}
+          onSchedule={onNavigate ? handleSchedule : null}
         />
       )}
     </div>

@@ -537,9 +537,9 @@ export function AppProvider({ children }) {
       if (a.date > map[key].lastVisit) map[key].lastVisit = a.date
     })
 
-    // Filtra: só mostra clientes que completaram o cadastro (têm nome)
+    // Mostra todos os usuários logados (com telefone ou email identificável)
     return Object.values(map)
-      .filter(c => (c.name || '').trim().length > 0)
+      .filter(c => (c.phone || c.email || '').length > 0)
       .sort((a, b) => {
         if (b.lastVisit && !a.lastVisit) return 1
         if (a.lastVisit && !b.lastVisit) return -1
