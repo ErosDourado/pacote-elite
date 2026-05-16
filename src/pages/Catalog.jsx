@@ -37,7 +37,7 @@ function ProductSheet({ product, onClose }) {
           onClick={e => e.stopPropagation()}
         >
           {/* Foto grande */}
-          {product.imageUrl && (
+          {product.imageUrl && resolveImage(product.imageUrl) && (
             <div className="relative overflow-hidden" style={{ height: 260, borderRadius: '28px 28px 0 0' }}>
               <img src={resolveImage(product.imageUrl)} alt={product.name} className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
@@ -109,7 +109,7 @@ function ProductCard({ product, onClick }) {
     >
       {/* Foto full-width */}
       <div className="relative" style={{ aspectRatio: '3/4', overflow: 'hidden' }}>
-        {product.imageUrl
+        {product.imageUrl && resolveImage(product.imageUrl)
           ? <img src={resolveImage(product.imageUrl)} alt={product.name} className="w-full h-full object-cover transition-transform duration-300"
               style={{ objectPosition: product.objectPosition || 'center' }} />
           : (

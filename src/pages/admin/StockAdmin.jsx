@@ -127,7 +127,7 @@ export default function StockAdmin() {
         <div className="flex flex-col gap-3">
           {filtered.map(prod => (
             <div key={prod.id} className="ios-card p-4 flex items-center gap-3">
-              {prod.imageUrl ? (
+              {prod.imageUrl && resolveImage(prod.imageUrl) ? (
                 <img
                   src={resolveImage(prod.imageUrl)}
                   alt={prod.name}

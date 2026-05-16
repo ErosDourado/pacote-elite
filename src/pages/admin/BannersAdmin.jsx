@@ -140,7 +140,7 @@ export default function BannersAdmin() {
         <div className="flex flex-col gap-3">
           {banners.map(banner => (
             <div key={banner.id} className="ios-card overflow-hidden">
-              {banner.url && (
+              {banner.url && resolveImage(banner.url) && (
                 <img src={resolveImage(banner.url)} alt={banner.title}
                   className="w-full object-cover" style={{ height: 120 }} />
               )}

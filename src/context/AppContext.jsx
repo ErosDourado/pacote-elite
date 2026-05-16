@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'
 import { idbPut, idbDel, idbAll } from '../utils/imageDB'
 import { brandConfig } from '../brandConfig'
 import { observeAuth, signOut as authSignOut } from '../services/authService'
@@ -74,13 +74,9 @@ export function AppProvider({ children }) {
     idbAll().then(map => setImageMap(map))
   }, [])
 
-  // Ref pra resolveImage não invalidar callbacks que dependem dele (subscriptions)
-  const imageMapRef = useRef(imageMap)
-  useEffect(() => { imageMapRef.current = imageMap }, [imageMap])
-
   const resolveImage = useCallback((src) => {
     if (!src) return ''
-    if (src.startsWith('idb:')) return imageMapRef.current[src] ?? ''
+    if (src.startsWith('idb:')) return imageMap[src] ?? ''
     return src
   }, [imageMap])
 
@@ -107,38 +103,9 @@ export function AppProvider({ children }) {
     const critical = new Set(['services', 'products', 'banners', 'feed', 'procedures', 'gallery', 'links'])
     const emitted = new Set()
 
-    const checkReady = (key, data) => {
+    const checkReady = (key) => {
       emitted.add(key)
-
-      // Se forem banners e houver algum, tentamos pre-carregar a primeira imagem
-      if (key === 'banners' && data?.length > 0) {
-        const firstBanner = data[0]
-        const rawSrc = firstBanner.url || ''
-        const src = rawSrc.startsWith('idb:') ? (imageMapRef.current[rawSrc] ?? '') : rawSrc
-        if (src && !src.startsWith('idb:')) { // Pre-load apenas se for URL externa/Firebase
-          const img = new Image()
-          img.src = src
-          img.onload = () => {
-            emitted.add('banner_img')
-            finishIfReady()
-          }
-          img.onerror = () => {
-            emitted.add('banner_img')
-            finishIfReady()
-          }
-        } else {
-          emitted.add('banner_img')
-        }
-      } else if (key === 'banners') {
-        emitted.add('banner_img')
-      }
-
-      finishIfReady()
-    }
-
-    const finishIfReady = () => {
-      const hasBanners = emitted.has('banner_img')
-      if (emitted.size >= critical.size + (hasBanners ? 1 : 0)) {
+      if (emitted.size >= critical.size) {
         setTimeout(() => setDataLoaded(true), 400)
       }
     }
