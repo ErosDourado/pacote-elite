@@ -23,7 +23,10 @@ exports.removeOwnerToken = onCall(async (req) => {
   return { ok: true }
 })
 
-// Envia notificação para todos os dispositivos da proprietária
+// Envia notificação para todos os dispositivos da proprietária.
+// IMPORTANTE: usamos APENAS `data` payload (sem `notification` top-level) —
+// isso evita o bug clássico do FCM Web onde o browser auto-exibe E o SW
+// `onBackgroundMessage` é chamado, gerando duplicata.
 exports.notifyOwner = onCall(async (req) => {
   const { title, body } = req.data
   if (!title) return { ok: false }
@@ -34,9 +37,12 @@ exports.notifyOwner = onCall(async (req) => {
 
   const result = await msg.sendEachForMulticast({
     tokens,
-    notification: { title, body: body || '' },
+    data: {
+      title: String(title),
+      body:  String(body || ''),
+    },
     webpush: {
-      notification: { icon: '/pwa-192x192.png', badge: '/pwa-64x64.png' },
+      headers: { Urgency: 'high', TTL: '3600' },
       fcmOptions: { link: '/' },
     },
     apns: {

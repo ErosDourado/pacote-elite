@@ -5,6 +5,7 @@ import { brandConfig } from './brandConfig'
 import BottomNav from './components/BottomNav'
 import TopBar from './components/TopBar'
 import Splash from './components/Splash'
+import CompleteProfileModal from './components/CompleteProfileModal'
 // Páginas críticas — carregadas no bundle inicial
 import Home from './pages/Home'
 import Scheduling from './pages/Scheduling'
@@ -209,6 +210,9 @@ function AppRouter() {
         <AnimatePresence>
           {!dataLoaded && <Splash key="splash" />}
         </AnimatePresence>
+
+        {/* Modal bloqueante de cadastro incompleto */}
+        <CompleteProfileModal />
       </div>
     </div>
   )

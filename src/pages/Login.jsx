@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mail, Lock, User, Eye, EyeOff, ArrowRight, AlertCircle } from 'lucide-react'
+import { Mail, Lock, User, Phone, Cake, Eye, EyeOff, ArrowRight, AlertCircle } from 'lucide-react'
 import { signIn, signUp, friendlyAuthError } from '../services/authService'
 import { themeConfig } from '../themeConfig'
 
@@ -8,10 +8,31 @@ export default function Login({ onNavigate, pageState }) {
   const [mode,    setMode]    = useState('login') // 'login' | 'signup'
   const [name,    setName]    = useState('')
   const [email,   setEmail]   = useState('')
+  const [phone,   setPhone]   = useState('')
+  const [birthday, setBirthday] = useState('')
   const [pass,    setPass]    = useState('')
   const [showPw,  setShowPw]  = useState(false)
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
+
+  // Máscara de telefone simples (BR): (11) 99999-9999
+  const formatPhone = (raw) => {
+    const d = raw.replace(/\D/g, '').slice(0, 11)
+    if (d.length <= 2)  return d
+    if (d.length <= 6)  return `(${d.slice(0,2)}) ${d.slice(2)}`
+    if (d.length <= 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`
+    return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`
+  }
+  const phoneDigits = phone.replace(/\D/g, '')
+
+  // Birthday válido: data no passado e usuário tem pelo menos 1 ano de idade
+  const birthdayValid = (() => {
+    if (!birthday) return false
+    const d = new Date(birthday + 'T12:00:00')
+    if (isNaN(d.getTime())) return false
+    const now = new Date()
+    return d < now && d.getFullYear() > 1900
+  })()
 
   // Pra onde voltar após login (admin / finance / home)
   const redirectTo = pageState?.redirectTo || 'home'
@@ -20,7 +41,11 @@ export default function Login({ onNavigate, pageState }) {
   const canSubmit =
     email.trim().length > 3 &&
     pass.length >= 6 &&
-    (!isSignup || name.trim().length >= 2)
+    (!isSignup || (
+      name.trim().length >= 2 &&
+      phoneDigits.length >= 10 &&
+      birthdayValid
+    ))
 
   const handleSubmit = async (e) => {
     e?.preventDefault?.()
@@ -29,7 +54,7 @@ export default function Login({ onNavigate, pageState }) {
     setError('')
     try {
       if (isSignup) {
-        await signUp(email.trim(), pass, name.trim())
+        await signUp(email.trim(), pass, name.trim(), phoneDigits, birthday)
       } else {
         await signIn(email.trim(), pass)
       }
@@ -70,7 +95,7 @@ export default function Login({ onNavigate, pageState }) {
           className="bg-white rounded-2xl p-5 flex flex-col gap-3"
           style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.035)', border: '1px solid rgba(0,0,0,0.05)' }}
         >
-          {/* Nome (signup) */}
+          {/* Campos extras (signup): Nome, Telefone, Aniversário */}
           <AnimatePresence initial={false}>
             {isSignup && (
               <motion.div
@@ -79,6 +104,7 @@ export default function Login({ onNavigate, pageState }) {
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.18 }}
                 style={{ overflow: 'hidden' }}
+                className="flex flex-col gap-3"
               >
                 <label className="flex flex-col gap-1.5">
                   <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(60,60,67,0.55)' }}>
@@ -92,6 +118,42 @@ export default function Login({ onNavigate, pageState }) {
                       onChange={e => setName(e.target.value)}
                       placeholder="Seu nome"
                       autoComplete="name"
+                      className="w-full rounded-xl px-4 py-3 pl-9 text-[14px] focus:outline-none transition-colors"
+                      style={{ border: '1px solid rgba(60,60,67,0.18)' }}
+                    />
+                  </div>
+                </label>
+
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(60,60,67,0.55)' }}>
+                    WhatsApp
+                  </span>
+                  <div className="relative">
+                    <Phone size={14} strokeWidth={1.75} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-label-3" />
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      value={phone}
+                      onChange={e => setPhone(formatPhone(e.target.value))}
+                      placeholder="(11) 99999-9999"
+                      autoComplete="tel"
+                      className="w-full rounded-xl px-4 py-3 pl-9 text-[14px] focus:outline-none transition-colors"
+                      style={{ border: '1px solid rgba(60,60,67,0.18)' }}
+                    />
+                  </div>
+                </label>
+
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(60,60,67,0.55)' }}>
+                    Aniversário
+                  </span>
+                  <div className="relative">
+                    <Cake size={14} strokeWidth={1.75} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-label-3" />
+                    <input
+                      type="date"
+                      value={birthday}
+                      onChange={e => setBirthday(e.target.value)}
+                      max={new Date().toISOString().split('T')[0]}
                       className="w-full rounded-xl px-4 py-3 pl-9 text-[14px] focus:outline-none transition-colors"
                       style={{ border: '1px solid rgba(60,60,67,0.18)' }}
                     />

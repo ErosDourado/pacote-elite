@@ -1,4 +1,4 @@
-import { getMessaging, getToken, isSupported } from 'firebase/messaging'
+import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { app } from '../firebase'
 
@@ -44,6 +44,44 @@ export async function disablePush(token) {
 export function notifyOwner(title, body) {
   if (!app) return Promise.resolve()
   return httpsCallable(fns(), 'notifyOwner')({ title, body }).catch(() => {})
+}
+
+/** Registra um listener pra mensagens recebidas com o app em foreground.
+ *  Sem isso, FCM Web não exibe notificação enquanto o app está aberto.
+ *  Retorna uma função de unsubscribe. */
+export async function startForegroundListener() {
+  if (!app) return () => {}
+  try {
+    const m = await messaging()
+    return onMessage(m, payload => {
+      const d = payload.data || {}
+      const title = d.title || 'Studio'
+      const body  = d.body  || ''
+      const show = (reg) => {
+        const opts = {
+          body,
+          icon: '/pwa-192x192.png',
+          badge: '/pwa-64x64.png',
+          tag:  'studio-' + Date.now(),
+          silent: false,
+        }
+        if (reg) {
+          reg.showNotification(title, opts)
+        } else if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(title, opts)
+        }
+      }
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js')
+          .then(reg => show(reg || null))
+          .catch(() => show(null))
+      } else {
+        show(null)
+      }
+    })
+  } catch {
+    return () => {}
+  }
 }
 
 export const isPushSupported = () =>

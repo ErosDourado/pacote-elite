@@ -13,22 +13,25 @@ const colRef = db ? collection(db, COLLECTION) : null
  *  pra não apagar email/phone/name previamente salvos. */
 export async function upsertUsuario(data) {
   if (!colRef || !db) return
-  const phone = (data.phone || '').replace(/\D/g, '')
-  const email = (data.email || '').trim().toLowerCase()
-  const name  = (data.name || '').trim()
+  const phone    = (data.phone || '').replace(/\D/g, '')
+  const email    = (data.email || '').trim().toLowerCase()
+  const name     = (data.name || '').trim()
+  const birthday = (data.birthday || '').trim()
   if (!phone && !email) return
 
   const writes = []
   if (phone) {
     const payload = { updatedAt: serverTimestamp(), phone }
-    if (name)  payload.name  = name
-    if (email) payload.email = email
+    if (name)     payload.name     = name
+    if (email)    payload.email    = email
+    if (birthday) payload.birthday = birthday
     writes.push(setDoc(doc(db, COLLECTION, phone), payload, { merge: true }))
   }
   if (email) {
     const payload = { updatedAt: serverTimestamp(), email }
-    if (name)  payload.name  = name
-    if (phone) payload.phone = phone
+    if (name)     payload.name     = name
+    if (phone)    payload.phone    = phone
+    if (birthday) payload.birthday = birthday
     writes.push(setDoc(doc(db, COLLECTION, email), payload, { merge: true }))
   }
   try { await Promise.all(writes) }

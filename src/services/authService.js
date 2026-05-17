@@ -16,14 +16,20 @@ import {
   updateProfile,
 } from 'firebase/auth'
 import { auth } from '../firebase'
+import { upsertUsuario } from './usuariosService'
 
-/** Cadastrar nova conta. */
-export async function signUp(email, password, displayName = '') {
+/** Cadastrar nova conta. Campos extras (phone, birthday) já vão pro Firestore. */
+export async function signUp(email, password, displayName = '', phone = '', birthday = '') {
   if (!auth) throw new Error('Firebase não configurado. Verifique as variáveis de ambiente.')
   const cred = await createUserWithEmailAndPassword(auth, email, password)
   if (displayName) {
     try { await updateProfile(cred.user, { displayName }) } catch {}
   }
+  // Persiste dados completos no Firestore (também serve pra contas antigas que
+  // estão completando o cadastro via Login com modo signup).
+  try {
+    await upsertUsuario({ name: displayName, email, phone, birthday })
+  } catch {}
   return cred.user
 }
 

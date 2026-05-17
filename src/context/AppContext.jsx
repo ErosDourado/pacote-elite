@@ -9,12 +9,12 @@ import { subscribeBanners, createBanner, updateBanner as fsUpdateBanner, deleteB
 import { subscribeFeedPosts, createFeedPost, updateFeedPost as fsUpdateFeedPost, deleteFeedPost } from '../services/feedService'
 import { subscribeProcedures, createProcedure, updateProcedure as fsUpdateProcedure, deleteProcedure } from '../services/proceduresService'
 import { subscribeGallery, createGalleryPhoto, updateGalleryPhoto as fsUpdateGalleryPhoto, deleteGalleryPhoto } from '../services/galleryService'
-import { subscribeAppointments, createAppointment, updateAppointmentStatus as fsUpdateApptStatus, deleteAppointment as fsDeleteAppt } from '../services/appointmentsService'
+import { subscribeAppointments, createAppointment, updateAppointmentStatus as fsUpdateApptStatus, deleteAppointment as fsDeleteAppt, updateAppointment as fsUpdateAppointment } from '../services/appointmentsService'
 import { subscribeWaitlist, createWaitlistEntry, deleteWaitlistEntry, markNotified } from '../services/waitlistService'
 import { subscribeLinks, createLink, updateLink as fsUpdateLink, deleteLink } from '../services/linksService'
 import { upsertUsuario, updateUsuarioVip, updateUsuarioVipByEmail, subscribeUsuarios } from '../services/usuariosService'
 import { isFirebaseConfigured } from '../firebase'
-import { notifyOwner } from '../services/notificationsService'
+import { notifyOwner, startForegroundListener } from '../services/notificationsService'
 import {
   INITIAL_SERVICES,
   INITIAL_PRODUCTS,
@@ -61,7 +61,8 @@ export function AppProvider({ children }) {
   const [highlights,   setHighlights]   = useState(() => load('hl',     INITIAL_HIGHLIGHTS))
   const [waTemplates,  setWaTemplates]  = useState(() => load('watpl',  INITIAL_WA_TEMPLATES))
   const [blocks,       setBlocks]       = useState(() => load('blocks', INITIAL_BLOCKS))
-  const [profile,      setProfileState] = useState(() => load('prof',   { name: '', phone: '', email: '' }))
+  const [profile,      setProfileState] = useState(() => load('prof',   { name: '', phone: '', email: '', birthday: '' }))
+  const [reminderDays, setReminderDaysState] = useState(() => load('reminderDays', 15))
   const [cart,         setCart]         = useState(() => load('cart',   []))
 
   const DEFAULT_WH = { start: '09:00', end: '18:00', lunchStart: '12:00', lunchEnd: '13:00', interval: 60 }
@@ -169,6 +170,23 @@ export function AppProvider({ children }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firebaseOn])
 
+  // Foreground listener de FCM — exibe notificação quando o app está aberto.
+  // Sem isso, push só aparecia com app em background, dando sensação de
+  // "às vezes não toca".
+  useEffect(() => {
+    if (!firebaseOn || !isAdmin) return
+    let unsub = null
+    let cancelled = false
+    startForegroundListener().then(u => {
+      if (cancelled) { try { u && u() } catch {} ; return }
+      unsub = u
+    })
+    return () => {
+      cancelled = true
+      if (unsub) { try { unsub() } catch {} }
+    }
+  }, [firebaseOn, isAdmin])
+
   // ── Persistência local (somente estado local) ─────────────────
   useEffect(() => { safeSave('hl',          highlights)   }, [highlights])
   useEffect(() => { safeSave('watpl',       waTemplates)  }, [waTemplates])
@@ -176,6 +194,12 @@ export function AppProvider({ children }) {
   useEffect(() => { safeSave('prof',        profile)      }, [profile])
   useEffect(() => { safeSave('cart',        cart)         }, [cart])
   useEffect(() => { safeSave('workingHours', workingHours) }, [workingHours])
+  useEffect(() => { safeSave('reminderDays', reminderDays) }, [reminderDays])
+
+  const setReminderDays = (n) => {
+    const v = Math.max(1, Math.min(365, parseInt(n) || 15))
+    setReminderDaysState(v)
+  }
 
   // Gera lista de horários disponíveis
   const availableHours = useMemo(() => {
@@ -232,6 +256,10 @@ export function AppProvider({ children }) {
     const payMap = { completed: 'paid', cancelled: 'refunded', confirmed: 'pending' }
     setAppointments(prev => prev.map(a => a.id === id ? { ...a, status, paymentStatus: payMap[status] ?? a.paymentStatus } : a))
   }
+
+  const updateAppointment = (id, patch) => firebaseOn
+    ? fsUpdateAppointment(id, patch)
+    : setAppointments(prev => prev.map(a => a.id === id ? { ...a, ...patch } : a))
 
   // ── Fila de Espera ────────────────────────────────────────────
   const addToWaitlist = async (data) => {
@@ -473,8 +501,18 @@ export function AppProvider({ children }) {
 
   // ── Perfil da cliente ─────────────────────────────────────────
   const setProfile = (data) => {
-    setProfileState(prev => ({ ...prev, ...data }))
-    if (firebaseOn && data.phone) upsertUsuario(data)
+    setProfileState(prev => {
+      const next = { ...prev, ...data }
+      if (firebaseOn && (next.phone || next.email)) {
+        upsertUsuario({
+          name: next.name,
+          phone: next.phone,
+          email: next.email,
+          birthday: next.birthday,
+        })
+      }
+      return next
+    })
   }
 
   // ── Auth admin ────────────────────────────────────────────────
@@ -559,8 +597,9 @@ export function AppProvider({ children }) {
       services, products, banners, highlights, feedPosts, procedures, links, waTemplates,
       appointments, blocks, waitlist, gallery, profile, cart, workingHours, availableHours, isAdmin,
       currentUser, authLoading, firebaseOn, dataLoaded,
-      clients, finance,
-      addAppointment, cancelAppointment, completeAppointment, deleteAppointment, updateAppointmentStatus,
+      clients, finance, usuarios,
+      reminderDays, setReminderDays,
+      addAppointment, cancelAppointment, completeAppointment, deleteAppointment, updateAppointmentStatus, updateAppointment,
       isSlotTaken,
       addToWaitlist, removeFromWaitlist, markWaitlistNotified, findWaitlistCandidates,
       addGalleryPhoto, removeGalleryPhoto, updateGalleryPhoto,

@@ -1,6 +1,6 @@
 import { useState, Component } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Home, Calendar, Scissors, Users, CalendarOff, ShoppingBag, MessageSquare, Bell } from 'lucide-react'
+import { Home, Calendar, Scissors, Users, CalendarOff, ShoppingBag, MessageSquare, Bell, BellRing } from 'lucide-react'
 import { brandConfig } from '../../brandConfig'
 import AppointmentsAdmin  from './AppointmentsAdmin'
 import ServicesAdmin      from './ServicesAdmin'
@@ -10,12 +10,14 @@ import AvailabilityAdmin  from './AvailabilityAdmin'
 import StockAdmin         from './StockAdmin'
 import MessagesAdmin      from './MessagesAdmin'
 import NotificationsAdmin from './NotificationsAdmin'
+import RemindersAdmin     from './RemindersAdmin'
 
 const TABS = [
   { id: 'appointments',  label: 'Agenda',     Icon: Calendar,       Component: AppointmentsAdmin },
   { id: 'availability',  label: 'Disponib.',  Icon: CalendarOff,    Component: AvailabilityAdmin },
   { id: 'services',      label: 'Serviços',   Icon: Scissors,       Component: ServicesAdmin     },
   { id: 'clients',       label: 'Clientes',   Icon: Users,          Component: ClientsAdmin      },
+  { id: 'reminders',     label: 'Lembretes',  Icon: BellRing,       Component: RemindersAdmin    },
   { id: 'messages',      label: 'Mensagens',  Icon: MessageSquare,  Component: MessagesAdmin     },
   { id: 'stock',         label: 'Loja',       Icon: ShoppingBag,    Component: StockAdmin        },
   { id: 'home',          label: 'Home',       Icon: Home,           Component: HomeAdmin         },

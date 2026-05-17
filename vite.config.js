@@ -19,15 +19,26 @@ function firebaseSwPlugin(env) {
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js')
 firebase.initializeApp(${JSON.stringify(cfg)})
 const messaging = firebase.messaging()
+// Lê do payload.data (Cloud Function envia data-only para evitar duplicata).
 messaging.onBackgroundMessage(payload => {
-  const n = payload.notification ?? {}
-  self.registration.showNotification(n.title || 'Studio', {
-    body: n.body || '',
-    icon: n.icon || '/pwa-192x192.png',
+  const d = payload.data || {}
+  self.registration.showNotification(d.title || 'Studio', {
+    body: d.body || '',
+    icon: '/pwa-192x192.png',
     badge: '/pwa-64x64.png',
-    tag: 'studio-notif',
-    renotify: true,
+    tag:  'studio-' + Date.now(),
+    requireInteraction: false,
+    silent: false,
   })
+})
+self.addEventListener('notificationclick', event => {
+  event.notification.close()
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      for (const c of list) { if ('focus' in c) return c.focus() }
+      if (clients.openWindow) return clients.openWindow('/')
+    })
+  )
 })
 `
       try { mkdirSync('dist', { recursive: true }) } catch {}

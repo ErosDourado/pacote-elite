@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Plus, Trash2, CalendarOff, Clock, ChevronRight } from 'lucide-react'
+import { Plus, Trash2, CalendarOff, Clock, ChevronRight, BellRing } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '../../context/AppContext'
 import MiniCalendar from '../../components/MiniCalendar'
@@ -96,8 +96,67 @@ function WorkingHoursConfig({ workingHours, setWorkingHours, availableHours }) {
   )
 }
 
+// ── Seção de prazo de lembrete (clientes que não retornam) ──────────
+function ReminderDaysConfig({ reminderDays, setReminderDays }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="ios-section mb-5">
+      <div
+        className="ios-row justify-between cursor-pointer"
+        onClick={() => setOpen(o => !o)}
+        style={{ borderBottom: open ? '0.33px solid rgba(60,60,67,0.12)' : 'none' }}
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+            style={{ background: 'color-mix(in srgb, var(--color-accent) 12%, transparent)' }}>
+            <BellRing size={16} strokeWidth={1.5} className="text-accent" />
+          </div>
+          <div>
+            <p className="text-[15px] font-medium text-label">Lembrete de retorno</p>
+            <p className="text-[12px] text-label-2">
+              Avisa quando cliente passa {reminderDays} dias sem voltar
+            </p>
+          </div>
+        </div>
+        <motion.div animate={{ rotate: open ? 90 : 0 }} transition={{ duration: 0.2 }}>
+          <ChevronRight size={16} strokeWidth={1.5} className="text-label-3" />
+        </motion.div>
+      </div>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22 }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div className="px-4 pt-4 pb-5 flex flex-col gap-2">
+              <label className="flex flex-col gap-1">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-label-2">Dias sem voltar</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={reminderDays}
+                  onChange={e => setReminderDays(e.target.value)}
+                  className="ios-input"
+                />
+              </label>
+              <p className="text-[11px] text-label-3 leading-snug">
+                Esse valor define quando uma cliente aparece na aba <strong>Lembretes</strong> do painel.
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 export default function AvailabilityAdmin() {
-  const { blocks, addBlock, removeBlock, updateBlock, workingHours, setWorkingHours, availableHours } = useApp()
+  const { blocks, addBlock, removeBlock, updateBlock, workingHours, setWorkingHours, availableHours, reminderDays, setReminderDays } = useApp()
   const [selectedDate, setSelectedDate] = useState(null)
 
   const blockedDates = useMemo(() => blocks.filter(b => b.times === 'all').map(b => b.date), [blocks])
@@ -149,6 +208,9 @@ export default function AvailabilityAdmin() {
         setWorkingHours={setWorkingHours}
         availableHours={availableHours}
       />
+
+      {/* Configuração de lembretes de retorno */}
+      <ReminderDaysConfig reminderDays={reminderDays} setReminderDays={setReminderDays} />
 
       <p className="text-[13px] text-label-2 mb-4">
         Selecione um dia no calendário para bloquear horários ou o dia inteiro.
